@@ -1,0 +1,9 @@
+active_status: true
+conn_params:
+  dbname: password_manager
+  host: localhost
+  port: 5432
+  user: plaxer
+options:
+  default_database_name: password_manager
+  default_stash: stash1
