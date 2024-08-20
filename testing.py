@@ -5,7 +5,7 @@ def test_crypto():
     crypto = cr.CryptoAux()
 
     # Test the generate_key method
-    key = crypto.generateKeys("a")
+    key = crypto.generate_fernet("a")
 
 
     # Test the encrypt and decrypt methods

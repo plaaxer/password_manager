@@ -28,6 +28,10 @@ def set_active_status(status: bool) -> None:
     with open("config.yaml", "w") as file:
         yaml.dump(data, file)
 
+def get_salt_length() -> int:
+    with open("config.yaml", "r") as file:
+        return yaml.safe_load(file)["options"]["salt_length"]
+
 def menu_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Password manager.")
     parser.add_argument("--register", "-r", action="store_true", help="Register a new password stash.")

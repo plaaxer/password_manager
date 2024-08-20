@@ -108,7 +108,7 @@ class App():
     def add_password(self, stash: str, service: str, username: str, password: str) -> None:
 
         # generate fernet object for encryption and decryption with current master_key
-        self.crypto.generateKeys(self.master_key)
+        self.crypto.generate_fernet(self.master_key)
 
         # encrypting username and password
         encrypted_username = self.crypto.encrypt_data(username).decode()
@@ -122,16 +122,28 @@ class App():
         # storing everything
         self.communicator.store_password(stash, service, encrypted_username, encrypted_password)
 
-    def get_password(self, stash: str, service: str) -> None:
+import base64
 
-        # retrieves data from chosen service: s --> salted, e --> encrypted
-        s_e_username, s_e_password = self.communicator.retrieve_password(stash, service)
+def get_password(self, stash: str, service: str) -> None:
 
-        # extracting salt
-        salt = s_e_username[-22:]
+    # Retrieves data from the chosen service: s --> salted, e --> encrypted (string)
+    s_e_username, s_e_password = self.communicator.retrieve_password(stash, service)
+    
+    # Decode the Base64 encoded username and password
+    decoded_username = base64.b64decode(s_e_username)
+    decoded_password = base64.b64decode(s_e_password)
 
-        # decrypting username and password
-        username = self.crypto.decrypt_data(e_username.encode())    
-        password = self.crypto.decrypt_data(e_password.encode())
+    # Salt length in bytes
+    salt_length = aux.get_salt_length()
 
-        print(f"Username: {username}\nPassword: {password}") # change after
+    # Extract the salt from the end of the decoded username data
+    salt = decoded_username[-salt_length:]
+
+    # Extract the username from the decoded username data (excluding the salt)
+    username = decoded_username[:-salt_length].decode()
+
+    # decryption
+    username = self.crypto.decrypt_data(decoded_username.decode())
+    password = self.crypto.decrypt_data(decoded_password.decode())
+
+    print(f"Username: {username}\nPassword: {password}")
