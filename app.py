@@ -111,39 +111,41 @@ class App():
         self.crypto.generate_fernet(self.master_key)
 
         # encrypting username and password
-        encrypted_username = self.crypto.encrypt_data(username).decode()
-        encrypted_password = self.crypto.encrypt_data(password).decode()
+        encrypted_username = self.crypto.encrypt_data(username)
+        encrypted_password = self.crypto.encrypt_data(password)
         print(f"Encrypted username: {encrypted_username}\nEncrypted password: {encrypted_password}")
 
-        # appending random, unique salt to username and password
-        encrypted_username += base64.urlsafe_b64encode(self.crypto.get_salt()).decode()
-        encrypted_password += base64.urlsafe_b64encode(self.crypto.get_salt()).decode()
+        # appending random, unique (per session) salt to username and password
+        encrypted_username += self.crypto.get_salt()
+        encrypted_password += self.crypto.get_salt()
+
+        # transforming bytes into string for storage
+        encrypted_username = encrypted_username.decode()
+        encrypted_password = encrypted_password.decode()
 
         # storing everything
         self.communicator.store_password(stash, service, encrypted_username, encrypted_password)
 
-import base64
-
 def get_password(self, stash: str, service: str) -> None:
 
-    # Retrieves data from the chosen service: s --> salted, e --> encrypted (string)
-    s_e_username, s_e_password = self.communicator.retrieve_password(stash, service)
-    
-    # Decode the Base64 encoded username and password
-    decoded_username = base64.b64decode(s_e_username)
-    decoded_password = base64.b64decode(s_e_password)
+    # Retrieves data from chosen service
+    username, password = self.communicator.retrieve_password(stash, service)
+    # salted, encrypted, as string
+
+    username = username.encode()
+    password = password.encode()
 
     # Salt length in bytes
     salt_length = aux.get_salt_length()
 
     # Extract the salt from the end of the decoded username data
-    salt = decoded_username[-salt_length:]
+    # salt = decoded_username[-salt_length:]
 
     # Extract the username from the decoded username data (excluding the salt)
-    username = decoded_username[:-salt_length].decode()
+    # username = decoded_username[:-salt_length].decode()
 
     # decryption
-    username = self.crypto.decrypt_data(decoded_username.decode())
-    password = self.crypto.decrypt_data(decoded_password.decode())
+    # username = self.crypto.decrypt_data(decoded_username.decode())
+    # password = self.crypto.decrypt_data(decoded_password.decode())
 
-    print(f"Username: {username}\nPassword: {password}")
+    # print(f"Username: {username}\nPassword: {password}")

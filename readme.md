@@ -33,3 +33,44 @@ obs: please ajust the communicator.py default pw if you have changed it and it i
 if you do not wish to grant access of the postgres user to the program, you can also create a specific role that enables creating of databases and use it to create databases instead.
 
 daí, eu posso fazer que, caso for a primeira vez da pessoa utilizando o app, roda um script de bash, que pede permissao para criar esse user/superuser que servirá para criar as demais databases. seria bem legal. os sudos seriam preenchidos pela pessoa.
+
+    def add_password(self, stash: str, service: str, username: str, password: str) -> None:
+
+        # generate fernet object for encryption and decryption with current master_key
+        self.crypto.generate_fernet(self.master_key)
+
+        # encrypting username and password
+        encrypted_username = self.crypto.encrypt_data(username).decode()
+        encrypted_password = self.crypto.encrypt_data(password).decode()
+        print(f"Encrypted username: {encrypted_username}\nEncrypted password: {encrypted_password}")
+
+        # appending random, unique salt to username and password
+        encrypted_username += base64.urlsafe_b64encode(self.crypto.get_salt()).decode()
+        encrypted_password += base64.urlsafe_b64encode(self.crypto.get_salt()).decode()
+
+        # storing everything
+        self.communicator.store_password(stash, service, encrypted_username, encrypted_password)
+
+def get_password(self, stash: str, service: str) -> None:
+
+    # Retrieves data from the chosen service: s --> salted, e --> encrypted (string)
+    s_e_username, s_e_password = self.communicator.retrieve_password(stash, service)
+    
+    # ???
+    decoded_username = base64.b64decode(s_e_username)
+    decoded_password = base64.b64decode(s_e_password)
+
+    # Salt length in bytes
+    salt_length = aux.get_salt_length()
+
+    # Extract the salt from the end of the decoded username data
+    salt = decoded_username[-salt_length:]
+
+    # Extract the username from the decoded username data (excluding the salt)
+    username = decoded_username[:-salt_length].decode()
+
+    # decryption
+    username = self.crypto.decrypt_data(decoded_username.decode())
+    password = self.crypto.decrypt_data(decoded_password.decode())
+
+    print(f"Username: {username}\nPassword: {password}")

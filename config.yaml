@@ -7,4 +7,4 @@ conn_params:
 options:
   default_database_name: password_manager
   default_stash: stash1
-  salt_length: 16
+  salt_length: 1

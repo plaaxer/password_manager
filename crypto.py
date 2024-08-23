@@ -37,11 +37,11 @@ class CryptoAux:
 
         # fernet will be resposible for encrypting and decrypting data
 
-    def encrypt_data(self, data: str) -> str:
-        return self.f.encrypt(data.encode()) # encrypts using the fernet object
+    def encrypt_data(self, data: bytes) -> bytes:
+        return self.f.encrypt(data) # encrypts using the fernet object
 
-    def decrypt_data(self, data: bytes) -> str:
-        return (self.f.decrypt(data)).decode() # decrypts using the fernet object
+    def decrypt_data(self, data: bytes) -> bytes:
+        return self.f.decrypt(data) # decrypts using the fernet object
     
     def get_salt(self) -> bytes:
         return self.salt
