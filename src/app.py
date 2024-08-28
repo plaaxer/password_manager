@@ -33,11 +33,18 @@ class App():
                     self.register(action.stash_name)
                 else:
                     print("Please provide a stash name.")
+
             elif action.enter:
+
                 if action.stash_name != None and action.master_key != None:
                     self.enter(action.stash_name, action.master_key)
+
+                elif action.master_key == None and action.stash_name != None:
+                    self.enter(aux.get_options()["default_stash"], action.stash_name)
+
                 else:
-                    print("Please provide a stash name and master key.")
+                    self.enter(aux.get_options()["default_stash"], aux.get_master_key())
+                    
             elif action.list:
                 stashes = aux.get_created_stashes()
                 print("Stashes created:")
@@ -60,7 +67,7 @@ class App():
     
                 action = self.authenticated_arg_parser.parse_args(command.split())
 
-                # I can do the if None verification inside the parser
+                # I can do the if None verification inside the parser (maybe?)
                 if action.add:
                     self.add_password(stash, action.service, action.username, action.password)
                 elif action.get:
@@ -154,9 +161,8 @@ class App():
         encrypted_username = encrypted_username.encode()
         encrypted_password = encrypted_password.encode()
 
-        salt = username[-(aux.get_salt_length() + 3):]
+        salt = encrypted_username[-(aux.get_salt_length() + 3):]
         salt = base64.b64decode(salt)
-        print(f"\nSalt after extraction: {salt}")
 
         self.crypto.generate_fernet(self.master_key, salt)
 

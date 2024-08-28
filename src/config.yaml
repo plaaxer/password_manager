@@ -6,5 +6,5 @@ conn_params:
   user: plaxer
 options:
   default_database_name: password_manager
-  default_stash: stash1
+  default_stash: a
   salt_length: 1
