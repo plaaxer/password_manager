@@ -1,76 +1,31 @@
-Master-password encryption: argon2.
-Database encryption: ed25519.
+# Password Manager
 
-https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ed25519/
-https://en.wikipedia.org/wiki/EdDSA#Ed25519
-https://github.com/hynek/argon2-cffi/blob/main/docs/argon2.md
-https://stackoverflow.com/questions/58431973/argon2-library-that-hashes-passwords-without-a-secret-and-with-a-random-salt-tha
-https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ec/
-https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange
+- A completely functional and secure password manager made using python and postgresql. 
 
-ideas:
-i need a way for the master_password to both encrypt and decrypt the database. maybe I could generate a symmetric or assymetric key to encrypt the data; add it to the database; and then decrypt it.
+- **Features:** encryption and decryption with randomly generated salt through a master-password, quick retrieval of data from database, terminal-based application with multiple commands. More detail on cryptography below.
 
-https://cryptography.io/en/latest/fernet/#cryptography.fernet.Fernet --> fernet; symmetric encryption and decryption of data put into the database.
+## Setup
 
-https://cryptography.io/en/latest/hazmat/primitives/key-derivation-functions/#cryptography.hazmat.primitives.kdf.pbkdf2.PBKDF2HMAC --> key derivation function to be used with the fernet.
+- **Dependencies:** python3, postgresql, psycopg2, argon2
 
-so, basically, I cannot block the access to the PostgreSQL database in such a way that only the selected user can access, as whomever has root should and is able to access each and every database on the host machine, as per the natural and fundamental working of PSQL.
+- **Postgresql setup:** the password manager requires access to a postgresql user to create the default database where the passwords are stored. 
 
-I, however, still want to store data in some sort of database and not in plain text, and it's is not like root access should be given in a easy way. Obviously, the database content will be encrypted prior to being added; it is just for a second layer of security (albeit weak) to be added.
+- If you are familiar with postgresql and **already have a user/database you´d like to use** for the password_manager:
 
-Therefore, I've decided to proceed with the implementation of a PostgreSQL database. In future projects I can also take a look at docker or at some kind of container. That's, however, for the future.
+If you have both the database and user ready, change the "active_status"  parameter on config.yaml to true. This will prevent the program of creating a new database for the passwords. And change the connection parameters in the same file. Alternatively, if you have only the user, but not a database yet, just change the connection_parameters and the program will automatically create a database for you. If you wish to change its name, change it on the "default_database_name" parameter.
 
-REQUIREMENTS:
+- You **are not familiar** with postgresql and have just installed it:
 
-argon2
-postgresql
-python3
-psycopg2
+Run ./create_user.sh to create the postgresql user that has the same name as you (otherwise customize connection on the yaml file and change authentication to password and not peer instead). Then change user on "conn_params" (also config.yaml) to your OS username (has to be the same as the recently created postgresql user). Run app. When connecting, it will prompt for your postgresql user password (the one that you've created just now). It automatically detects that there's no database for the password_manager yet and creates one. It also changes the connection parameters to the newly created database, so no need to do that.
 
-obs: please ajust the communicator.py default pw if you have changed it and it is not 'postgres'. An access to postgresql is required to create the databases for each "account"/"key".
+## Encryption
 
-if you do not wish to grant access of the postgres user to the program, you can also create a specific role that enables creating of databases and use it to create databases instead.
+- The stored passwords and usernames are encrypted utilizing symmetric-key encryption and authentication based on the chosen master-password. That means that the master-password must, naturally, be kept safe from third parties, otherwise data could be stolen, but it also means that it is virtually impossible to retrieve data without it.
 
-daí, eu posso fazer que, caso for a primeira vez da pessoa utilizando o app, roda um script de bash, que pede permissao para criar esse user/superuser que servirá para criar as demais databases. seria bem legal. os sudos seriam preenchidos pela pessoa.
+- The specific tool for encryption and decryption utilized in the password manager is Fernet, a tool for symmetric encryption available on python’s Cryptography module, developed by Python Cryptographic Authority (PYCA).
 
-    def add_password(self, stash: str, service: str, username: str, password: str) -> None:
+- To generate a Fernet object, however, it is needed a URL-safe base64-encoded 32-byte key, meaning that most (if not all) master-passwords are unfit for being a key directly. To solve that, we first run the master-password through a key-derivation function (KDF), in this case, PBKDF2HMAC, also available on the Cryptography module.
 
-        # generate fernet object for encryption and decryption with current master_key
-        self.crypto.generate_fernet(self.master_key)
+- The PBKDF2HMAC algorithm receives as parameters a SHA256 hashing function, number of iterations and length, but most importantly a randomly (pseudo) generated salt. This salt is extremely important as it will be unique for each added password on the database - meaning that if you have the same password on multiple websites (not advisable), to an attacker all encrypted data will differ even though the passwords are the same. It also makes it so that the database is significantly stronger against rainbow table attacks.
 
-        # encrypting username and password
-        encrypted_username = self.crypto.encrypt_data(username).decode()
-        encrypted_password = self.crypto.encrypt_data(password).decode()
-        print(f"Encrypted username: {encrypted_username}\nEncrypted password: {encrypted_password}")
-
-        # appending random, unique salt to username and password
-        encrypted_username += base64.urlsafe_b64encode(self.crypto.get_salt()).decode()
-        encrypted_password += base64.urlsafe_b64encode(self.crypto.get_salt()).decode()
-
-        # storing everything
-        self.communicator.store_password(stash, service, encrypted_username, encrypted_password)
-
-def get_password(self, stash: str, service: str) -> None:
-
-    # Retrieves data from the chosen service: s --> salted, e --> encrypted (string)
-    s_e_username, s_e_password = self.communicator.retrieve_password(stash, service)
-    
-    # ???
-    decoded_username = base64.b64decode(s_e_username)
-    decoded_password = base64.b64decode(s_e_password)
-
-    # Salt length in bytes
-    salt_length = aux.get_salt_length()
-
-    # Extract the salt from the end of the decoded username data
-    salt = decoded_username[-salt_length:]
-
-    # Extract the username from the decoded username data (excluding the salt)
-    username = decoded_username[:-salt_length].decode()
-
-    # decryption
-    username = self.crypto.decrypt_data(decoded_username.decode())
-    password = self.crypto.decrypt_data(decoded_password.decode())
-
-    print(f"Username: {username}\nPassword: {password}")
+- The salt is then appended to the encrypted data, which is then stored in the database. When retrieving it, the master_password is used to generate the same Fernet object; this time, however, with the salt that is extracted from the last bytes. Having the salt exposed is naturally not a problem, as one can only generate the Fernet object with the correct master-password.
