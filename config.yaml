@@ -5,6 +5,5 @@ conn_params:
   port: 5432
   user: plaxer
 options:
-  default_database_name: password_manager
   default_stash: a
   salt_length: 1

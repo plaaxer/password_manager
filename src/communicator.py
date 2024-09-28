@@ -1,6 +1,6 @@
 import psycopg2
 import sys
-import aux
+import src.aux as aux
 
 class Communicator:
     def __init__(self):
@@ -8,14 +8,11 @@ class Communicator:
         # default connection, change according to needs on config file
         self.conn_params = aux.get_conn_params()
 
-        db_password = input(f"Enter database password for user {self.conn_params['user']}: ")
+        # db_password = input(f"Enter database password for user {self.conn_params['user']}: ")
+        db_password = "a"
 
          # connects to postgresql database
         self.cursor = self.connect(db_password)
-
-        # if first time running, create default database
-        if not aux.get_active_status():
-            self.create_default_database()
     
     def connect(self, db_password: str) -> psycopg2.extensions.cursor:
 

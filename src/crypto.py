@@ -1,7 +1,7 @@
 import os
 import argon2
 import base64
-import aux
+import src.aux as aux
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes

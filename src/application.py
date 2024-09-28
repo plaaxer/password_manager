@@ -1,8 +1,8 @@
 import base64
 
-import crypto
-import aux
-import communicator as com
+import src.crypto as crypto
+import src.aux as aux
+import src.communicator as com
 
 # Main application
 class App():

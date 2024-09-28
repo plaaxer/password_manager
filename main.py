@@ -1,5 +1,5 @@
 
-import app as a
+from src import application as a
 
 def main() -> int:
     app = a.App()
