@@ -1,10 +1,9 @@
 
-from src import application as a
+from src.application import App
 
 def main() -> int:
-    app = a.App()
-
-    return 0
+    app = App()
+    app.run()
 
 if __name__ == "__main__":
     main()

@@ -12,11 +12,11 @@
 
 - If you are familiar with postgresql and **already have a user/database you´d like to use** for the password_manager:
 
-If you have both the database and user ready, change the "active_status"  parameter on config.yaml to true. This will prevent the program of creating a new database for the passwords. And change the connection parameters in the same file. Alternatively, if you have only the user, but not a database yet, just change the connection_parameters and the program will automatically create a database for you. If you wish to change its name, change it on the "default_database_name" parameter.
+If you have both the database and user ready, change the "active_status"  parameter on configs/config.yaml to true. This will prevent the program of creating a new database for the passwords. And change the connection parameters in the same file. Alternatively, if you have only the user, but not a database yet, just change the connection_parameters and the program will automatically create a database for you. If you wish to change its name, change it on the "default_database_name" parameter.
 
 - You **are not familiar** with postgresql and have just installed it:
 
-Run ./create_user.sh to create the postgresql user that has the same name as you (otherwise customize connection on the yaml file and change authentication to password and not peer instead). Then change user on "conn_params" (also config.yaml) to your OS username (has to be the same as the recently created postgresql user). Run app. When connecting, it will prompt for your postgresql user password (the one that you've created just now). It automatically detects that there's no database for the password_manager yet and creates one. It also changes the connection parameters to the newly created database, so no need to do that.
+Run ./create_user.sh to create the postgresql user that has the same name as you (otherwise customize connection on the yaml file and change authentication to password and not peer instead). Then change user on "conn_params" (also configs/config.yaml) to your OS username (has to be the same as the recently created postgresql user). Run app. When connecting, it will prompt for your postgresql user password (the one that you've created just now). It automatically detects that there's no database for the password_manager yet and creates one. It also changes the connection parameters to the newly created database, so no need to do that.
 
 ## Encryption
 

@@ -6,4 +6,4 @@ conn_params:
   user: plaxer
 options:
   default_stash: a
-  salt_length: 1
+  salt_length: 16

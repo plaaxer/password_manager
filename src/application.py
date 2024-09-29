@@ -12,7 +12,6 @@ class App():
         self.menu_arg_parser = aux.menu_arg_parser()
         self.authenticated_arg_parser = aux.authenticated_arg_parser()
         self.master_key = None
-        self.run()
 
     def run(self) -> None:
 
@@ -121,7 +120,7 @@ class App():
         # generate fernet object for encryption and decryption with current master_key
         self.crypto.generate_fernet(self.master_key)
 
-        data_username, data_password = self.add_salt_encryption(username, password)
+        data_username, data_password = self.crypto.add_salt_encryption(username, password)
 
         # storing everything
         self.communicator.store_password(stash, service, data_username, data_password)
@@ -132,48 +131,7 @@ class App():
         encrypted_username, encrypted_password = self.communicator.retrieve_password(stash, service)
         # salted, encrypted, as string
 
-        username, password = self.remove_salt_encryption(encrypted_username, encrypted_password)
+        username, password = self.crypto.remove_salt_encryption(encrypted_username, encrypted_password, self.master_key)
 
         print(f'Username: {username}\nPassword: {password}')
-
-    def add_salt_encryption(self, username: str, password: str) -> tuple:
-
-        username = username.encode()
-        password = password.encode()
-
-        username = base64.b64encode(username)
-        password = base64.b64encode(password)
-
-        encrypted_username = self.crypto.encrypt_data(username)
-        encrypted_password = self.crypto.encrypt_data(password)
-        print(f"Encrypted username: {encrypted_username}\nEncrypted password: {encrypted_password}")
-
-        salt = self.crypto.get_salt()
-        salt = base64.b64encode(salt)
-
-        data_username = (encrypted_username + salt).decode()
-        data_password = (encrypted_password + salt).decode()
-
-        return data_username, data_password
-
-    def remove_salt_encryption(self, encrypted_username: str, encrypted_password: str) -> tuple:
-
-        encrypted_username = encrypted_username.encode()
-        encrypted_password = encrypted_password.encode()
-
-        salt = encrypted_username[-(aux.get_salt_length() + 3):]
-        salt = base64.b64decode(salt)
-
-        self.crypto.generate_fernet(self.master_key, salt)
-
-        decrypted_username = self.crypto.decrypt_data(encrypted_username)
-        decrypted_password = self.crypto.decrypt_data(encrypted_password)
-
-        decrypted_username = base64.b64decode(decrypted_username)
-        decrypted_password = base64.b64decode(decrypted_password)
-
-        username = decrypted_username.decode()
-        password = decrypted_password.decode()
-
-        return username, password
 
