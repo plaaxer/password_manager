@@ -1,6 +1,7 @@
 import os
 import argon2
 import base64
+import sys
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
@@ -72,10 +73,16 @@ class CryptoAux:
         encrypted_username_bytes = base64.b64decode(encrypted_username)
         encrypted_password_bytes = base64.b64decode(encrypted_password)
 
-        salt_length = aux.get_salt_length() + (aux.get_salt_length())//2
+        salt_length = aux.get_salt_length() + (aux.get_salt_length())//2 # 150% of original size due to base64 encoding
         salt = encrypted_username_bytes[-salt_length:]  # extract salt from the end
         encrypted_username_bytes = encrypted_username_bytes[:-salt_length]  # remove salt from the encrypted data
-        decoded_salt = base64.b64decode(salt)  # decode the salt
+
+        try:
+            decoded_salt = base64.b64decode(salt)  # decode the salt. will not work if the salt is not the correct length
+        except Exception as e:
+            print(f"Error decoding salt: {e}")
+            print("ATTENTION: Salt length might be incorrect. Have you changed it in config.yaml?")
+            sys.exit(1)
 
         self.generate_fernet(master_key, decoded_salt)
 

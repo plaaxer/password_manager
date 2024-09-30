@@ -60,5 +60,3 @@ def get_master_key() -> str:
         if mk == mk2:
             return mk
         print("Master keys do not match. Try again.")
-
-info_no_database =  "Wrong password or default connection not found. Please refer to the setup instructions on readme."

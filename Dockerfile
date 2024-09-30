@@ -6,18 +6,20 @@ RUN apt-get update && \
     apt-get install -y postgresql postgresql-contrib && \
     apt-get clean
 
-
-ENV POSTGRES_USER=plaxer
-ENV POSTGRES_PASSWORD=a
+# you can change these environment variables to whatever you want, but make sure to change them in config.yaml as well
+ENV POSTGRES_USER=pwmanager_user
+ENV POSTGRES_PASSWORD=pwmanager_password
 ENV POSTGRES_DB=password_manager
 
 ENV PYTHONPATH /app
 
-
 RUN mkdir -p /var/lib/postgresql/data
 
-
 ENV PGDATA=/var/lib/postgresql/data
+
+# changes authentication method inside container to trust for local connections
+# security is not a concern here, given its isolated and local nature, as per https://www.postgresql.org/docs/current/auth-trust.html
+RUN sed -i "s/local   all             all                                     peer/local   all             all                                     trust/g" /etc/postgresql/*/main/pg_hba.conf
 
 COPY . /app
 WORKDIR /app

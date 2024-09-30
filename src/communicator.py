@@ -5,19 +5,16 @@ import src.aux as aux
 class Communicator:
     def __init__(self):
 
-        # default connection, change according to needs on config file
+        # default connection
         self.conn_params = aux.get_conn_params()
 
-        # db_password = input(f"Enter database password for user {self.conn_params['user']}: ")
-        db_password = "a"
-
          # connects to postgresql database
-        self.cursor = self.connect(db_password)
+        self.cursor = self.connect()
     
-    def connect(self, db_password: str) -> psycopg2.extensions.cursor:
+    def connect(self) -> psycopg2.extensions.cursor:
 
         try:
-            conn = psycopg2.connect(**self.conn_params, password=db_password)
+            conn = psycopg2.connect(**self.conn_params)
             conn.autocommit = True
             cur = conn.cursor()
             print("Connected to PostgreSQL database.")
@@ -25,7 +22,6 @@ class Communicator:
         
         except psycopg2.Error as e: # failed connection, maybe no user yet
             print("\nError while connecting to PostgreSQL:", e)
-            print(aux.info_no_database)
             sys.exit(1)
     
     def create_stash(self, name: str) -> None:
@@ -42,20 +38,23 @@ class Communicator:
 
         try:
             self.cursor.execute(f"DROP SCHEMA {name} CASCADE")
+            self.cursor.execute(f"DELETE FROM stashes_info.stashes WHERE stash_name = '{name}'")
             print(f"Stash {name} dropped successfully.")
 
         except psycopg2.Error as e:
             print(f"Error dropping schema {name}: {e}")
-
-    def create_info_table(self, name: str, master_key_hash: str) -> None:
+    
+    # adds a stash to the stashes table
+    def add_stash_info(self, name: str, master_key_hash: str) -> None:
 
         try:
-            self.cursor.execute(f"CREATE TABLE {name}.info (master_key_hash TEXT)")
-            self.cursor.execute(f"INSERT INTO {name}.info VALUES ('{master_key_hash}')")
+            self.cursor.execute(f"INSERT INTO stashes_info.stashes (stash_name) VALUES ('{name}')")
+            self.cursor.execute(f"UPDATE stashes_info.stashes SET master_key_hash = '{master_key_hash}' WHERE stash_name = '{name}'")
         
         except psycopg2.Error as e:
-            print(f"Error creating info table: {e}")
+            print(f"Error adding stash info: {e}")
     
+    # creates the passwords table for a given stash
     def create_password_table(self, name: str) -> None:
 
         try:
@@ -63,23 +62,12 @@ class Communicator:
         
         except psycopg2.Error as e:
             print(f"Error creating passwords table: {e}")
-
-    def create_default_database(self) -> None:
-
-        print(f"Creating default database: {aux.get_options()['default_database_name']}")
-        # ìndicates that a database is already in use
-        aux.set_active_status(True)
-        # sql query
-        self.cursor.execute(f"CREATE DATABASE {aux.get_options()['default_database_name']}")
-        # change default database parameter to the one just created
-        aux.set_dbname(aux.get_options()['default_database_name'])
     
-
     def get_master_key_hash(self, name: str) -> str:
 
         #returns the master key hash from the info table of the given schema
         try:
-            self.cursor.execute(f"SELECT master_key_hash FROM {name}.info")
+            self.cursor.execute(f"SELECT master_key_hash FROM stashes_info.stashes WHERE stash_name = '{name}'")
             return self.cursor.fetchone()[0]
         
         except psycopg2.Error as e:
@@ -112,3 +100,15 @@ class Communicator:
         
         except psycopg2.Error as e:
             print(f"Error retrieving password: {e}")
+    
+    def list_stashes(self) -> None:
+            
+        try:
+            self.cursor.execute("SELECT stash_name FROM stashes_info.stashes WHERE stash_name != 'public' AND stash_name != 'information_schema'")
+            stashes = self.cursor.fetchall()
+            print("Stashes:")
+            for stash in stashes:
+                print(stash[0])
+            
+        except psycopg2.Error as e:
+            print(f"Error listing stashes: {e}")
