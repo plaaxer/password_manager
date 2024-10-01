@@ -4,7 +4,7 @@ conn_params:
   host: localhost
   port: 5432
   user: plaxer
+  password: a
 options:
-  default_database_name: password_manager
-  default_stash: a
-  salt_length: 1
+  default_stash: gotta_change_stuff
+  salt_length: 16

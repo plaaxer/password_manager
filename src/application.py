@@ -1,8 +1,8 @@
 import base64
 
-import crypto
-import aux
-import communicator as com
+import src.crypto as crypto
+import src.aux as aux
+import src.communicator as com
 
 # Main application
 class App():
@@ -12,19 +12,19 @@ class App():
         self.menu_arg_parser = aux.menu_arg_parser()
         self.authenticated_arg_parser = aux.authenticated_arg_parser()
         self.master_key = None
-        self.run()
+        self.running = True
 
     def run(self) -> None:
 
         print(f"\nWelcome to the password manager! Write '-h' for more information or '-q' to quit.")
 
-        while True:
+        while self.running:
 
             command = input("\nEnter command: ")
 
             if command == "-q":
                 print("Exiting...")
-                break
+                self.running = False
 
             action = self.menu_arg_parser.parse_args(command.split())
 
@@ -35,21 +35,18 @@ class App():
                     print("Please provide a stash name.")
 
             elif action.enter:
-
+                # gotta change this after...
                 if action.stash_name != None and action.master_key != None:
                     self.enter(action.stash_name, action.master_key)
 
-                elif action.master_key == None and action.stash_name != None:
+                elif action.master_key != None and action.stash_name == None:
                     self.enter(aux.get_options()["default_stash"], action.stash_name)
 
                 else:
                     self.enter(aux.get_options()["default_stash"], aux.get_master_key())
                     
             elif action.list:
-                stashes = aux.get_created_stashes()
-                print("Stashes created:")
-                for stash in stashes:
-                    print(stash, end=" ")
+                self.list_stashes()
             else:
                 print("Invalid command. Write '-h' for help.")
 
@@ -63,6 +60,7 @@ class App():
     
                 if command == "-q":
                     print("Exiting...")
+                    self.running = False
                     break
     
                 action = self.authenticated_arg_parser.parse_args(command.split())
@@ -98,30 +96,39 @@ class App():
         print("Creating a stash named", name)
 
         # create schema/stash with given name
-        self.communicator.create_stash(name)
+        try:
+            self.communicator.create_stash(name)
+        except Exception as e:
+            print(f"Error creating stash: {e}")
+            return
 
         # getting master key from auxiliar function
         self.master_key = aux.get_master_key()
 
         # master key hashed and registered
-        master_key_hash = self.crypto.hash(self.master_key)
+        try:
+            master_key_hash = self.crypto.hash(self.master_key)
+        except Exception as e:
+            print(f"Error hashing master key: {e}")
+            return
         print(f"Master key hash: {master_key_hash}\nMaster key hashed and registered successfully.")
 
-        # create info table for stash (storing master key hash)
-        self.communicator.create_info_table(name, master_key_hash)
+        # add stash info to stashes_info
+        self.communicator.add_stash_info(name, master_key_hash)
 
         # create passwords table for stash
         self.communicator.create_password_table(name)
     
-    def list(self) -> None:
-        pass
+    def list_stashes(self) -> None:
+        self.communicator.list_stashes()
 
     def add_password(self, stash: str, service: str, username: str, password: str) -> None:
 
         # generate fernet object for encryption and decryption with current master_key
         self.crypto.generate_fernet(self.master_key)
 
-        data_username, data_password = self.add_salt_encryption(username, password)
+        # encrypts and salts username and password
+        data_username, data_password = self.crypto.add_salt_encryption(username, password)
 
         # storing everything
         self.communicator.store_password(stash, service, data_username, data_password)
@@ -132,48 +139,8 @@ class App():
         encrypted_username, encrypted_password = self.communicator.retrieve_password(stash, service)
         # salted, encrypted, as string
 
-        username, password = self.remove_salt_encryption(encrypted_username, encrypted_password)
+        # decrypts and desalts username and password
+        username, password = self.crypto.remove_salt_encryption(encrypted_username, encrypted_password, self.master_key)
 
         print(f'Username: {username}\nPassword: {password}')
-
-    def add_salt_encryption(self, username: str, password: str) -> tuple:
-
-        username = username.encode()
-        password = password.encode()
-
-        username = base64.b64encode(username)
-        password = base64.b64encode(password)
-
-        encrypted_username = self.crypto.encrypt_data(username)
-        encrypted_password = self.crypto.encrypt_data(password)
-        print(f"Encrypted username: {encrypted_username}\nEncrypted password: {encrypted_password}")
-
-        salt = self.crypto.get_salt()
-        salt = base64.b64encode(salt)
-
-        data_username = (encrypted_username + salt).decode()
-        data_password = (encrypted_password + salt).decode()
-
-        return data_username, data_password
-
-    def remove_salt_encryption(self, encrypted_username: str, encrypted_password: str) -> tuple:
-
-        encrypted_username = encrypted_username.encode()
-        encrypted_password = encrypted_password.encode()
-
-        salt = encrypted_username[-(aux.get_salt_length() + 3):]
-        salt = base64.b64decode(salt)
-
-        self.crypto.generate_fernet(self.master_key, salt)
-
-        decrypted_username = self.crypto.decrypt_data(encrypted_username)
-        decrypted_password = self.crypto.decrypt_data(encrypted_password)
-
-        decrypted_username = base64.b64decode(decrypted_username)
-        decrypted_password = base64.b64decode(decrypted_password)
-
-        username = decrypted_username.decode()
-        password = decrypted_password.decode()
-
-        return username, password
 
