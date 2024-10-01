@@ -12,6 +12,7 @@ import src.aux as aux
 class CryptoAux:
     def __init__(self):
         self.ph = argon2.PasswordHasher()
+        self.f = None
 
     # hashes the master key utilizing argon2
     def hash(self, master_key: str) -> str:
@@ -38,6 +39,11 @@ class CryptoAux:
         self.f = Fernet(key) # key is used to generate a Fernet object
 
         # fernet will be resposible for encrypting and decrypting data
+    
+    def delete_fernet(self) -> None:
+        # delete the fernet object to prevent memory leaks and later access
+        if self.f:
+            del self.f
 
     def encrypt_data(self, data: bytes) -> bytes:
         return self.f.encrypt(data) # encrypts using the fernet object
