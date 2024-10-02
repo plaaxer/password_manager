@@ -41,34 +41,42 @@ You can change the name password_manager to whatever you like. When it finishes 
 
 - The salt is then appended to the encrypted data, which is then stored in the database. When retrieving it, the master_password is used to generate the same Fernet object; this time, however, with the salt that is extracted from the last bytes. Having the salt exposed is naturally not a problem, as one can only generate the Fernet object with the correct master-password.
 
-# Usage
+## Usage
 
 - The password manager works using stashes; consider them collections of passwords. Most users won't need more than one, but if you do, it's a working feature. Each stash has its own unique master password, used to encrypt and decrypt data, and refers to a single schema each in the PostgreSQL database (present in the same container). As always, -h flag gives helpful tips and useful commands.
 
 - To register a master password (create a stash):
 
---register/-r [stash_name] --> stash_name defaults to the config.yaml default_stash variable. It will prompt you for the master password you want to register.
+      --register/-r [stash_name] 
+--> stash_name defaults to the config.yaml default_stash variable. It will prompt you for the master password you want to register.
 
 - To enter a stash, you have multiple options:
 
---enter/-e [stash_name] [master_password]
+      --enter/-e [stash_name] [master_password]
+--> default way to enter
 
---enter/-e [master_password] --> stash_name defaults to the config.yaml default_stash variable.
+      --enter/-e [master_password]
+--> stash_name defaults to the config.yaml default_stash variable.
 
---enter/-e [stash_name] -gs--> -gs flag makes it so that the only argument is the stash_name. It will prompt for master_password.
+      --enter/-e [stash_name] -gs
+--> -gs flag makes it so that the only argument is the stash_name. It will prompt for master_password.
 
---enter/-e --> stash_name defaults to config.yaml one and master_password is prompted.
+      --enter/-e
+--> stash_name defaults to config.yaml one and master_password is prompted.
 
-[master_password] --> you can omit --enter/-e
-[stash_name] --> same here
+      [master_password] 
+--> you can omit --enter/-e
+      [stash_name] --gs
+--> same here
 
 - To add a password (you have entered a stash):
 
---add/-a [service] [user] [password] --> user and password are encrypted, service is not
+      --add/-a [service] [user] [password] 
+--> user and password are encrypted, service is not
 
 - To get a password:
 
---get/-g [service]
+      --get/-g [service]
 
 - **EXAMPLE**: Suppose you will only use the default stash and want to add user linux@gmail.com with password 123 for service OpenSource, and then retrieve said passowrd and user. You do:
 
