@@ -1,31 +1,42 @@
 # Password Manager
 
-- A completely functional and secure password manager made using python and postgresql. 
+- A fully functional and secure password manager made using Python, PostgreSQL, Cryptography, Argon2, and Docker.
 
-- **Features:** encryption and decryption with randomly generated salt through a master-password, quick retrieval of data from database, terminal-based application with multiple commands. More detail on cryptography below.
+## Features
+
+- **Encryption & Decryption**: Secured with randomly generated salts and a master-password.
+- **Fast Data Retrieval**: Quickly retrieve data from the PostgreSQL database.
+- **Command-Line Application**: Includes multiple terminal commands for easy management.
+
+## Table of Contents
+
+- [Setup](#setup)
+- [Encryption](#encryption)
+- [Usage](#usage)
+- [Example](#example)
 
 ## Setup
 
-**Docker Installation:** To run this app, you need docker installed in your computer. It eases setup as there is no other requirement and you can run this in any OS (as long as it supports Docker). To install it in Debian distros, run: 
+### Docker Installation
+This application requires docker installed in your computer. It eases setup as there is no other requirement and you can run this in any OS (as long as it supports Docker). To install it in Debian distros, run: 
 
-- sudo apt-get update
-- sudo apt-get install docker.io
+      sudo apt-get update
+      sudo apt-get install docker.io
 
-Check installation by either doing:
+Check installation by either checking version or by running default container:
 
-- docker --version
+      docker --version
+      docker run hello-world
 
-Or running the default container hello-world:
+### Running
 
-- docker run hello-world
+First, be sure that you are located at /password_manager. Then, run:
 
-**Running:** First, be sure that you are located at /password_manager. Then, run:
-
-- docker build -t password_manager .
+      docker build -t password_manager .
 
 You can change the name password_manager to whatever you like. When it finishes building, run the app doing:
 
-- docker run -it password_manager
+      docker run -it password_manager
 
 **ATTENTION:** Do not remove or delete the running container without the backup of data, as it will be lost. It is not recommended to change the config.yaml file, but if you do, you'll have to rebuild the image for it to take effect (database data is not mantained.)
 
@@ -47,43 +58,38 @@ You can change the name password_manager to whatever you like. When it finishes 
 
 - To register a master password (create a stash):
 
-      --register/-r [stash_name] 
---> stash_name defaults to the config.yaml default_stash variable. It will prompt you for the master password you want to register.
+      --register/-r [stash_name]
+      --register/-r
+    If [stash_name] is not given, it defaults to the config.yaml default_stash variable. It will prompt you for the master password you want to register.
 
-- To enter a stash, you have multiple options:
+- To enter a stash, you have multiple options, such as:
 
-      --enter/-e [stash_name] [master_password]
---> default way to enter
+        --enter/-e [stash_name] [master_password]
 
-      --enter/-e [master_password]
---> stash_name defaults to the config.yaml default_stash variable.
+        --enter/-e [master_password]
 
-      --enter/-e [stash_name] -gs
---> -gs flag makes it so that the only argument is the stash_name. It will prompt for master_password.
+        --enter/-e [stash_name] -gs
 
-      --enter/-e
---> stash_name defaults to config.yaml one and master_password is prompted.
+        [master_password]
+        
+        [stash_name] -gs
 
-      [master_password] 
---> you can omit --enter/-e
-      [stash_name] --gs
---> same here
-
+    When [stash_name] is not given, it defaults to the one set at the config.yaml file. When [master_password] is not given, it is prompted (more secure). Easiest way to login is to just [master_password].
 - To add a password (you have entered a stash):
 
       --add/-a [service] [user] [password] 
---> user and password are encrypted, service is not
 
 - To get a password:
 
       --get/-g [service]
 
-- **EXAMPLE**: Suppose you will only use the default stash and want to add user linux@gmail.com with password 123 for service OpenSource, and then retrieve said passowrd and user. You do:
+## Example
+- Suppose you will only use the default stash and want to add user linux@gmail.com, with password 123, for service OpenSource, and then retrieve said passowrd and user. You do:
 
-Enter command: -r
-Enter master key: secret_masterpassword
-Confirm master key: secret_masterpassoword
+        Enter command: -r
+        Enter master key: secret_masterpassword
+        Confirm master key: secret_masterpassoword
 
-Enter command: -e secret_masterpassword
-Enter command: -a OpenSource linux@gmail.com 123
-Enter command: -g OpenSource
+        Enter command: -e secret_masterpassword
+        Enter command: -a OpenSource linux@gmail.com 123
+        Enter command: -g OpenSource
