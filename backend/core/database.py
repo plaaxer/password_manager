@@ -1,6 +1,6 @@
 import psycopg2
 import sys
-import src.aux as aux
+import aux
 
 class Communicator:
     def __init__(self):

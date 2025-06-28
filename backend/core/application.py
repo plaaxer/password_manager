@@ -1,11 +1,5 @@
 import base64
 
-import src.crypto as crypto
-import src.aux as aux
-import src.communicator as com
-from src.commandParser import CommandParserGenerator
-
-# Main application
 class App():
     def __init__(self):
         self.crypto = crypto.CryptoAux()
@@ -16,8 +10,13 @@ class App():
 
         self.master_key = None
         self.authenticated = False
-        # authentication or not is just a matter of checking whether the correct master key was provided;
-        # even if manipulated, the generated fernet object will be useless without the correct master key
+
+        """
+
+        Authentication or not is just a matter of checking whether the correct master key was provided;
+        Even if manipulated, the generated fernet object will be useless without the correct master key.
+
+        """
 
     def run(self) -> None:
 

@@ -3,8 +3,8 @@ conn_params:
   dbname: password_manager
   host: localhost
   port: 5432
-  user: pwmanager_user
-  password: pwmanager_password
+  user: user
+  password: password
 options:
   default_stash: password_default
   salt_length: 16

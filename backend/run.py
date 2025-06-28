@@ -1,5 +1,5 @@
 
-from src.application import App
+from core.application import App
 
 def main() -> int:
     app = App()
