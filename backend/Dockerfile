@@ -1,38 +1,30 @@
+# backend/Dockerfile
 
-FROM python:latest
+# Start from a slim, official Python base image
+FROM python:3.11-slim
 
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
-RUN apt-get update && \
-    apt-get install -y postgresql postgresql-contrib && \
-    apt-get clean
-
-# you can change these environment variables to whatever you want, but make sure to change them in config.yaml as well
-ENV POSTGRES_USER=pwmanager_user
-ENV POSTGRES_PASSWORD=pwmanager_password
-ENV POSTGRES_DB=password_manager
-
-ENV PYTHONPATH /app
-
-RUN mkdir -p /var/lib/postgresql/data
-
-ENV PGDATA=/var/lib/postgresql/data
-
-# changes authentication method inside container to trust for local connections
-# security is not a concern here, given its isolated and local nature, as per https://www.postgresql.org/docs/current/auth-trust.html
-RUN sed -i "s/local   all             all                                     peer/local   all             all                                     trust/g" /etc/postgresql/*/main/pg_hba.conf
-
-COPY . /app
+# Set the working directory inside the container
 WORKDIR /app
 
-RUN ls -R /app
+# Install system dependencies needed by psycopg2 (the PostgreSQL driver)
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN chmod +x /app/configs/init_db.sh
-RUN /app/configs/init_db.sh
+# Copy just the requirements file first to leverage Docker's layer caching
+COPY ./requirements.txt .
 
-RUN pip install psycopg2
-RUN pip install argon2-cffi
-RUN pip install cryptography
-RUN pip install pyyaml
+# Install the Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy the rest of your backend application code into the container
+COPY . .
 
-CMD ["bash", "-c", "service postgresql start && python main.py"]
+# The command to run your API server when the container starts.
+# This example is for FastAPI.
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]

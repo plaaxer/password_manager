@@ -1,0 +1,6 @@
+fastAPI
+uvicorn
+psycopg2-binary
+argon2-cffi
+cryptography
+pyyaml
