@@ -1,8 +1,8 @@
 
-from core.application import App
+from core.service import Service
 
 def main() -> int:
-    app = App()
+    app = Service()
     app.run()
 
 if __name__ == "__main__":

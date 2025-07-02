@@ -26,7 +26,7 @@ class CryptoAux:
         except argon2.exceptions.VerifyMismatchError: # wrong password
             return False
     
-    def generate_fernet(self, master_key: str, salt=os.urandom(aux.get_salt_length())) -> None:
+    def generate_fernet(self, master_key: str, salt=os.urandom(aux.get_salt_length())) -> Fernet:
 
         self.salt = salt
 
@@ -38,7 +38,7 @@ class CryptoAux:
 
         self.f = Fernet(key) # key is used to generate a Fernet object
 
-        # fernet will be resposible for encrypting and decrypting data
+        return self.f
     
     def delete_fernet(self) -> None:
         # delete the fernet object to prevent memory leaks and later access
@@ -90,7 +90,7 @@ class CryptoAux:
             print("ATTENTION: Salt length might be incorrect. Have you changed it in config.yaml?")
             sys.exit(1)
 
-        self.generate_fernet(master_key, decoded_salt)
+        f = self.generate_fernet(master_key, decoded_salt)
 
         decrypted_username_bytes = self.decrypt_data(encrypted_username_bytes)
         decrypted_password_bytes = self.decrypt_data(encrypted_password_bytes)
