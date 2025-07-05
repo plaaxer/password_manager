@@ -1,114 +1,79 @@
-import psycopg2
-import sys
-import aux
+# backend/core/database.py
 
-class Communicator:
-    def __init__(self):
+import os
+import asyncpg
+from typing import Optional, Tuple
 
-        # default connection
-        self.conn_params = aux.get_conn_params()
+# --- Connection Pool Management ---
+# The pool will be created when the application starts and managed globally.
+pool: Optional[asyncpg.Pool] = None
 
-         # connects to postgresql database
-        self.cursor = self.connect()
+async def connect_to_db():
+    """Creates the database connection pool. Called on application startup."""
+    global pool
+    db_user = os.getenv("POSTGRES_USER")
+    db_password = os.getenv("POSTGRES_PASSWORD")
+    db_host = os.getenv("POSTGRES_HOST", "db")
+    db_name = os.getenv("POSTGRES_DB")
     
-    def connect(self) -> psycopg2.extensions.cursor:
+    if not all([db_user, db_password, db_host, db_name]):
+        raise ValueError("Database environment variables are not fully set.")
 
-        try:
-            conn = psycopg2.connect(**self.conn_params)
-            conn.autocommit = True
-            cur = conn.cursor()
-            print("Connected to PostgreSQL database.")
-            return cur
-        
-        except psycopg2.Error as e: # failed connection, maybe no user yet
-            print("\nError while connecting to PostgreSQL:", e)
-            sys.exit(1)
+    pool = await asyncpg.create_pool(
+        user=db_user,
+        password=db_password,
+        host=db_host,
+        database=db_name
+    )
+    print("Database connection pool created successfully.")
+
+async def close_db_connection():
+    """Closes the database connection pool. Called on application shutdown."""
+    global pool
+    if pool:
+        await pool.close()
+        print("Database connection pool closed.")
+
+# --- Database Functions (Replaces Communicator methods) ---
+# Each function is async and takes a connection from the pool.
+
+async def get_user(username: str) -> Optional[dict]:
+    """
+    Fetches a user by their username (stash_name).
+    This function corresponds to your old get_master_key_hash.
     
-    def create_stash(self, name: str) -> None:
+    NOTE: In a real app, you'd have a proper users table instead of 'stashes_info.stashes'.
+    This is adapted from your original structure.
+    """
+    # Use 'async with' to get a connection from the pool
+    async with pool.acquire() as connection:
+        # Use parameterized queries ($1, $2) to prevent SQL injection
+        query = "SELECT username, hashed_master_password FROM users WHERE username = $1"
+        user_record = await connection.fetchrow(query, username)
+        return dict(user_record) if user_record else None
 
-        try:
-            # schema = stash
-            self.cursor.execute(f"CREATE SCHEMA {name}")
-            print(f"Stash {name} created successfully.")
+async def save_user(db_user):
+    """Saves a new user to the database."""
+    async with pool.acquire() as connection:
+        query = "INSERT INTO users (username, hashed_master_password) VALUES ($1, $2)"
+        await connection.execute(query, db_user.username, db_user.hashed_master_password)
 
-        except psycopg2.Error as e:
-            print(f"Error creating schema {name}: {e}")
-
-    def drop_stash(self, name: str) -> None:
-
-        try:
-            self.cursor.execute(f"DROP SCHEMA {name} CASCADE")
-            self.cursor.execute(f"DELETE FROM stashes_info.stashes WHERE stash_name = '{name}'")
-            print(f"Stash {name} dropped successfully.")
-
-        except psycopg2.Error as e:
-            print(f"Error dropping schema {name}: {e}")
-    
-    # adds a stash to the stashes table
-    def add_stash_info(self, name: str, master_key_hash: str) -> None:
-
-        try:
-            self.cursor.execute(f"INSERT INTO stashes_info.stashes (stash_name) VALUES ('{name}')")
-            self.cursor.execute(f"UPDATE stashes_info.stashes SET master_key_hash = '{master_key_hash}' WHERE stash_name = '{name}'")
-        
-        except psycopg2.Error as e:
-            print(f"Error adding stash info: {e}")
-    
-    # creates the passwords table for a given stash
-    def create_password_table(self, name: str) -> None:
-
-        try:
-            self.cursor.execute(f"CREATE TABLE {name}.passwords (id SERIAL PRIMARY KEY, service TEXT UNIQUE, hashed_username TEXT, hashed_password TEXT)")
-        
-        except psycopg2.Error as e:
-            print(f"Error creating passwords table: {e}")
-    
-    def get_master_key_hash(self, name: str) -> str:
-
-        #returns the master key hash from the info table of the given schema
-        try:
-            self.cursor.execute(f"SELECT master_key_hash FROM stashes_info.stashes WHERE stash_name = '{name}'")
-            return self.cursor.fetchone()[0]
-        
-        except psycopg2.Error as e:
-            print(f"Error authenticating: {e}")
-            return False
-        
-    def store_password(self, name: str, service: str, username: str, password: str) -> None:
-
-        try:
-            query = f"""
-            INSERT INTO {name}.passwords (service, hashed_username, hashed_password)
-            VALUES (%s, %s, %s)
-            """
-            self.cursor.execute(query, (service, username, password))
-            print(f"Password for {service} stored successfully.")
-        
-        except psycopg2.Error as e:
-            print(f"Error storing password: {e}")
-
-    def retrieve_password(self, name: str, service: str) -> tuple:
-
-        try:
-            self.cursor.execute(f"SELECT * FROM {name}.passwords WHERE service = '{service}'")
-            result = self.cursor.fetchone()
-
-            if result:
-                return (result[2],result[3])
-            else:
-                print(f"Service {service} not found.")
-        
-        except psycopg2.Error as e:
-            print(f"Error retrieving password: {e}")
-    
-    def list_stashes(self) -> None:
-            
-        try:
-            self.cursor.execute("SELECT stash_name FROM stashes_info.stashes WHERE stash_name != 'public' AND stash_name != 'information_schema'")
-            stashes = self.cursor.fetchall()
-            print("Stashes:")
-            for stash in stashes:
-                print(stash[0])
-            
-        except psycopg2.Error as e:
-            print(f"Error listing stashes: {e}")
+async def get_encrypted_password(username: str, service_name: str) -> Optional[Tuple[str, str]]:
+    """
+    Retrieves the encrypted username and password for a given service.
+    This replaces your old retrieve_password method.
+    """
+    # IMPORTANT: The schema-per-user model is very difficult to manage and secure.
+    # A better model is to have a single 'passwords' table with a 'user_id' column.
+    # This implementation follows that better practice.
+    async with pool.acquire() as connection:
+        query = """
+            SELECT p.encrypted_username, p.encrypted_password
+            FROM passwords p
+            JOIN users u ON p.user_id = u.id
+            WHERE u.username = $1 AND p.service_name = $2
+        """
+        record = await connection.fetchrow(query, username, service_name)
+        if record:
+            return (record['encrypted_username'], record['encrypted_password'])
+        return None

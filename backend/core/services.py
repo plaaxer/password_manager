@@ -20,3 +20,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return TokenService.create_access_token(data, expires_delta)
 
 # --- AUTHENTICATION ---
+
+def authenticate_user(username: str, password: str) -> Optional[str]:
+    """
+    Authenticate a user by checking the username and password.
+    Returns the username if authentication is successful, otherwise None.
+    """
+    return None

@@ -1,5 +1,5 @@
 
-from core.service import Service
+from backend.core.services import Service
 
 def main() -> int:
     app = Service()
