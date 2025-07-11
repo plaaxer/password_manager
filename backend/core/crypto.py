@@ -9,53 +9,61 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 import aux
 
-class CryptoAux:
+class Crypto:
     def __init__(self):
         self.ph = argon2.PasswordHasher()
         self.f = None
 
-    # hashes the master key utilizing argon2
     def hash(self, master_key: str) -> str:
+        """Hashes the key utilizing argon2"""
         return self.ph.hash(master_key)
 
-    # checks if password is correct
-    def verify_master_key(self, master_key: str, hash: str) -> bool:
+    def verify_key(self, master_key: str, hash: str) -> bool:
+        """Checks if the provided master key matches the hash"""
         try:
             self.ph.verify(hash, master_key)
             return True
-        except argon2.exceptions.VerifyMismatchError: # wrong password
+        except argon2.exceptions.VerifyMismatchError:
             return False
     
     def generate_fernet(self, master_key: str, salt=os.urandom(aux.get_salt_length())) -> Fernet:
+        """
+        Generates a Fernet object for encryption/decryption.
 
+        This method derives a key from the master key and a salt using PBKDF2HMAC,
+        then uses this key to create a Fernet symmetric encryption object.
+        """
         self.salt = salt
-
-        # all of the documentation regarding these functions is in the cryptography library
 
         kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=self.salt, iterations = 480000) # key derivation function
 
         key = base64.urlsafe_b64encode(kdf.derive(master_key.encode())) # key (256 bits) derived from master key
 
         self.f = Fernet(key) # key is used to generate a Fernet object
-
-        return self.f
     
     def delete_fernet(self) -> None:
+        """Deletes the Fernet object from memory to prevent leaks."""
         # delete the fernet object to prevent memory leaks and later access
         if self.f:
             del self.f
 
     def encrypt_data(self, data: bytes) -> bytes:
+        """Encrypts the given data using the generated Fernet object."""
         return self.f.encrypt(data) # encrypts using the fernet object
 
     def decrypt_data(self, data: bytes) -> bytes:
+        """Decrypts the given data using the generated Fernet object."""
         return self.f.decrypt(data) # decrypts using the fernet object
     
     def get_salt(self) -> bytes:
+        """Returns the salt used for key derivation."""
         return self.salt
     
     def add_salt_encryption(self, username: str, password: str) -> tuple:
-
+        """
+        Encrypts username and password, appends the salt to each,
+        and returns them as base64 encoded strings.
+        """
         username = username.encode()
         password = password.encode()
 
@@ -72,7 +80,10 @@ class CryptoAux:
         return data_username, data_password
 
     def remove_salt_encryption(self, encrypted_username: str, encrypted_password: str, master_key: str) -> tuple:
-        
+        """
+        Extracts salt from encrypted data, regenerates the Fernet key,
+        and decrypts the username and password.
+        """
         encrypted_username = encrypted_username.encode()
         encrypted_password = encrypted_password.encode()
 
@@ -90,7 +101,7 @@ class CryptoAux:
             print("ATTENTION: Salt length might be incorrect. Have you changed it in config.yaml?")
             sys.exit(1)
 
-        f = self.generate_fernet(master_key, decoded_salt)
+        self.generate_fernet(master_key, decoded_salt)
 
         decrypted_username_bytes = self.decrypt_data(encrypted_username_bytes)
         decrypted_password_bytes = self.decrypt_data(encrypted_password_bytes)

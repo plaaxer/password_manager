@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from datetime import timedelta
 
-from ..core import services, crypto, models
+from ..core import application, crypto, models
 
 router = APIRouter()
 
@@ -47,7 +47,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     """
     # 1. Authenticate the user against the database/verification hash
     #    The 'authenticate_user' service will return the user/stash object if valid, or False.
-    user = await services.authenticate_user(form_data.username, form_data.password)
+    user = await application.authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -56,8 +56,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
     
     # 2. If valid, create a JWT access token
-    access_token_expires = timedelta(minutes=services.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = services.create_access_token(
+    access_token_expires = timedelta(minutes=application.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = application.create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     
@@ -76,7 +76,7 @@ async def register_stash(registration_data: models.UserCreate):
     """
     # You would expand this UserCreate model in models.py
     # It would contain username and master_password
-    new_user = await services.create_user(user=registration_data)
+    new_user = await application.create_user(user=registration_data)
     if not new_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -104,7 +104,7 @@ async def get_password(
     
     # Let's decode the token to get the username (stash_name)
     # This is the proper way to link the token to the user
-    username = services.get_username_from_token(token)
+    username = application.get_username_from_token(token)
     if username is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -116,7 +116,7 @@ async def get_password(
     # - Fetch encrypted data from DB for the given user and service.
     # - Use the provided master_password to derive the key and decrypt.
     # - Return the decrypted data.
-    decrypted_data = await services.get_and_decrypt_password(
+    decrypted_data = await application.get_and_decrypt_password(
         username=username,
         service_name=service_name,
         master_password=request_data.master_password

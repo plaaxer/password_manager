@@ -25,6 +25,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of your backend application code into the container
 COPY . .
 
-# The command to run your API server when the container starts.
-# This example is for FastAPI.
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "run:app", "--host", "0.0.0.0", "--port", "8000"]

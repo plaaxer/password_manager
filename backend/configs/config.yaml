@@ -8,3 +8,4 @@ conn_params:
 options:
   default_stash: password_default
   salt_length: 16
+version: 2.0.0
