@@ -9,6 +9,8 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 import aux
 
+# TODO: make this stateless
+
 class Crypto:
     def __init__(self):
         self.ph = argon2.PasswordHasher()

@@ -7,7 +7,10 @@ from typing import Optional
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 
-from token_service import TokenService
+from backend.core.services.token_service import TokenService
+from backend.core.services.authentication_service import AuthenticationService
+from backend.core.services.user_service import UserService
+from backend.core import database, models
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
@@ -22,8 +25,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 # --- AUTHENTICATION ---
 
 def authenticate_user(username: str, password: str) -> Optional[str]:
-    """
-    Authenticate a user by checking the username and password.
-    Returns the username if authentication is successful, otherwise None.
-    """
-    
+    return AuthenticationService.authenticate_user(username, password)
+
+# -- USER MANAGEMENT ---
+def create_user(user: models.UserCreate) -> Optional[models.User]:
+    return UserService.create_user(user)
+

@@ -39,10 +39,10 @@ async def close_db_connection():
 
 async def get_user(username: str) -> Optional[dict]:
     """
-    Fetches a user by their username (stash_name).
+    Fetches a user by their username.
     This function corresponds to your old get_master_key_hash.
     
-    NOTE: In a real app, you'd have a proper users table instead of 'stashes_info.stashes'.
+    NOTE: In a real app, you'd have a proper users table instead of.
     This is adapted from your original structure.
     """
     # Use 'async with' to get a connection from the pool
