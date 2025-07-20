@@ -9,21 +9,20 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 import aux
 
-# TODO: make this stateless
+# TODO: make the salt extraction stateless
 
 class Crypto:
     def __init__(self):
-        self.ph = argon2.PasswordHasher()
-        self.f = None
+        pass
 
     def hash(self, master_key: str) -> str:
         """Hashes the key utilizing argon2"""
-        return self.ph.hash(master_key)
+        return argon2.PasswordHasher().hash(master_key)
 
     def verify_key(self, master_key: str, hash: str) -> bool:
         """Checks if the provided master key matches the hash"""
         try:
-            self.ph.verify(hash, master_key)
+            argon2.PasswordHasher().verify(hash, master_key)
             return True
         except argon2.exceptions.VerifyMismatchError:
             return False
@@ -41,36 +40,28 @@ class Crypto:
 
         key = base64.urlsafe_b64encode(kdf.derive(master_key.encode())) # key (256 bits) derived from master key
 
-        self.f = Fernet(key) # key is used to generate a Fernet object
-    
-    def delete_fernet(self) -> None:
-        """Deletes the Fernet object from memory to prevent leaks."""
-        # delete the fernet object to prevent memory leaks and later access
-        if self.f:
-            del self.f
+        return Fernet(key) # key is used to generate a Fernet object
 
-    def encrypt_data(self, data: bytes) -> bytes:
+    def encrypt_data(self, data: bytes, fernet: Fernet) -> bytes:
         """Encrypts the given data using the generated Fernet object."""
-        return self.f.encrypt(data) # encrypts using the fernet object
+        return fernet.encrypt(data) # encrypts using the fernet object
 
-    def decrypt_data(self, data: bytes) -> bytes:
+    def decrypt_data(self, data: bytes, fernet: Fernet) -> bytes:
         """Decrypts the given data using the generated Fernet object."""
-        return self.f.decrypt(data) # decrypts using the fernet object
+        return fernet.decrypt(data) # decrypts using the fernet object
     
     def get_salt(self) -> bytes:
         """Returns the salt used for key derivation."""
         return self.salt
     
-    def add_salt_encryption(self, username: str, password: str) -> tuple:
+    def add_salt_encryption(self, username: str, password: str, fernet: Fernet) -> tuple:
         """
         Encrypts username and password, appends the salt to each,
         and returns them as base64 encoded strings.
         """
-        username = username.encode()
-        password = password.encode()
 
-        encrypted_username = self.encrypt_data(username)
-        encrypted_password = self.encrypt_data(password)
+        encrypted_username = self.encrypt_data(username.encode(), fernet)
+        encrypted_password = self.encrypt_data(password.encode(), fernet)
         print(f"Encrypted username: {encrypted_username}\nEncrypted password: {encrypted_password}")
 
         salt = self.get_salt()
@@ -86,11 +77,9 @@ class Crypto:
         Extracts salt from encrypted data, regenerates the Fernet key,
         and decrypts the username and password.
         """
-        encrypted_username = encrypted_username.encode()
-        encrypted_password = encrypted_password.encode()
 
-        encrypted_username_bytes = base64.b64decode(encrypted_username)
-        encrypted_password_bytes = base64.b64decode(encrypted_password)
+        encrypted_username_bytes = base64.b64decode(encrypted_username.encode())
+        encrypted_password_bytes = base64.b64decode(encrypted_password.encode())
 
         salt_length = aux.get_salt_length() + (aux.get_salt_length())//2 # 150% of original size due to base64 encoding
         salt = encrypted_username_bytes[-salt_length:]  # extract salt from the end
@@ -103,12 +92,9 @@ class Crypto:
             print("ATTENTION: Salt length might be incorrect. Have you changed it in config.yaml?")
             sys.exit(1)
 
-        self.generate_fernet(master_key, decoded_salt)
+        fernet = self.generate_fernet(master_key, decoded_salt)
 
-        decrypted_username_bytes = self.decrypt_data(encrypted_username_bytes)
-        decrypted_password_bytes = self.decrypt_data(encrypted_password_bytes)
+        decrypted_username_bytes = self.decrypt_data(encrypted_username_bytes, fernet)
+        decrypted_password_bytes = self.decrypt_data(encrypted_password_bytes, fernet)
 
-        username = decrypted_username_bytes.decode()
-        password = decrypted_password_bytes.decode()
-
-        return username, password
+        return decrypted_username_bytes.decode(), decrypted_password_bytes.decode()
