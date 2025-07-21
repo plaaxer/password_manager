@@ -34,9 +34,8 @@ class Crypto:
         This method derives a key from the master key and a salt using PBKDF2HMAC,
         then uses this key to create a Fernet symmetric encryption object.
         """
-        self.salt = salt
 
-        kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=self.salt, iterations = 480000) # key derivation function
+        kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations = 480000) # key derivation function
 
         key = base64.urlsafe_b64encode(kdf.derive(master_key.encode())) # key (256 bits) derived from master key
 
@@ -50,11 +49,7 @@ class Crypto:
         """Decrypts the given data using the generated Fernet object."""
         return fernet.decrypt(data) # decrypts using the fernet object
     
-    def get_salt(self) -> bytes:
-        """Returns the salt used for key derivation."""
-        return self.salt
-    
-    def add_salt_encryption(self, username: str, password: str, fernet: Fernet) -> tuple:
+    def add_salt_encryption(self, username: str, password: str, fernet: Fernet, salt: bytes) -> tuple:
         """
         Encrypts username and password, appends the salt to each,
         and returns them as base64 encoded strings.
@@ -64,7 +59,6 @@ class Crypto:
         encrypted_password = self.encrypt_data(password.encode(), fernet)
         print(f"Encrypted username: {encrypted_username}\nEncrypted password: {encrypted_password}")
 
-        salt = self.get_salt()
         encoded_salt = base64.b64encode(salt)
 
         data_username = base64.b64encode(encrypted_username + encoded_salt).decode()
