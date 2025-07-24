@@ -2,8 +2,7 @@ from fastapi import HTTPException, status
 
 from backend.core.services.token_service import TokenService
 from backend.core.crypto import Crypto
-from backend.core.database import database
-from backend.core import models
+from backend.core import database
 
 class AuthenticationService:
 
