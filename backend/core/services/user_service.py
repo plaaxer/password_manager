@@ -35,3 +35,31 @@ class UserService:
             )
         
         return db_user
+    
+    @staticmethod
+    async def get_and_decrypt_password(username: str, service_name: str, master_password: str) -> 'models.PasswordData':
+        """
+        Retrieves and decrypts the password for a given service.
+        This function will:
+        1. Fetch the encrypted password from the database.
+        2. Generate a Fernet key using the master password.
+        3. Decrypt the password.
+        """
+        encrypted_data = await database.get_encrypted_password(username, service_name)
+
+        if not encrypted_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Password not found",
+            )
+        
+        fernet = crypto.Crypto.generate_fernet(master_password, encrypted_data.salt)
+        
+        decrypted_username = crypto.Crypto.decrypt_data(encrypted_data.encrypted_username, fernet).decode()
+        decrypted_password = crypto.Crypto.decrypt_data(encrypted_data.encrypted_password, fernet).decode()
+
+        return models.PasswordData(
+            service_name=service_name,
+            username=decrypted_username,
+            password=decrypted_password
+        )

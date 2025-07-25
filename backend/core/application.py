@@ -28,6 +28,16 @@ def authenticate_user(username: str, password: str) -> Optional[str]:
     return AuthenticationService.authenticate_user(username, password)
 
 # -- USER MANAGEMENT ---
+
 def create_user(user: models.UserCreate) -> Optional[models.User]:
     return UserService.create_user(user)
 
+# -- PASSWORD MANAGEMENT ---
+
+def get_password(
+    username: str, service_name: str, master_password: str
+) -> Optional[models.PasswordData]:
+    """
+    Retrieves and decrypts the password for a given service.
+    """
+    return UserService.get_and_decrypt_password(username, service_name, master_password)

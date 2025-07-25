@@ -65,7 +65,7 @@ async def get_password(
         )
 
     # The service function does the heavy lifting: fetches, decrypts, and returns data.
-    decrypted_data = await application.get_and_decrypt_password(
+    decrypted_data = await application.get_password(
         username=username,
         service_name=service_name,
         master_password=request_data.master_password
