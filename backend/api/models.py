@@ -58,3 +58,17 @@ class UserInDB(User):
     It includes the hashed password, which should never be exposed in API responses.
     """
     hashed_password: str
+
+
+# ====================================================================
+# User Models
+# ====================================================================
+
+class PasswordData(BaseModel):
+    """
+    Model for representing a decrypted password.
+    This is used in the response of the /passwords/{service_name} endpoint.
+    """
+    service_name: str = Field(..., description="The name of the service for which the password is stored.")
+    username: str = Field(..., description="The decrypted username for the service.")
+    password: str = Field(..., description="The decrypted password for the service.")
