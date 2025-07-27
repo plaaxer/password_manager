@@ -1,9 +1,7 @@
 from fastapi import HTTPException, status
 
-from backend.core.services.token_service import TokenService
-from backend.core.crypto import Crypto
-from backend.core import database
-
+from .. import crypto
+from .. import database
 class AuthenticationService:
 
     @staticmethod
@@ -23,4 +21,4 @@ class AuthenticationService:
     
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
-        return Crypto.verify_key(plain_password, hashed_password)
+        return crypto.verify_key(plain_password, hashed_password)

@@ -1,10 +1,9 @@
 
-#backend/core/token_service.py
+#backend/core/services/token_service.py
 
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-
 from jose import JWTError, jwt # type: ignore
 from fastapi import Depends, HTTPException, status
 
@@ -31,7 +30,7 @@ class TokenService:
 
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            username: str = payload.get("sub")
+            username = payload.get("sub")
             if username is None:
                 raise credentials_exception
         except JWTError:
