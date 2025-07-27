@@ -4,6 +4,8 @@ import os
 import asyncpg
 from typing import Optional, Tuple
 
+from . import models
+
 # --- Connection Pool Management ---
 # The pool will be created when the application starts and managed globally.
 pool: Optional[asyncpg.Pool] = None
@@ -37,6 +39,8 @@ async def close_db_connection():
 # --- Database Functions (Replaces Communicator methods) ---
 # Each function is async and takes a connection from the pool.
 
+# TODO: user should return a User object, not a dict
+
 async def get_user(username: str) -> Optional[dict]:
     """
     Fetches a user by their username.
@@ -52,13 +56,13 @@ async def get_user(username: str) -> Optional[dict]:
         user_record = await connection.fetchrow(query, username)
         return dict(user_record) if user_record else None
 
-async def save_user(db_user):
+async def save_user(db_user: 'models.UserInDB'):
     """Saves a new user to the database."""
     async with pool.acquire() as connection:
         query = "INSERT INTO users (username, hashed_master_password) VALUES ($1, $2)"
-        await connection.execute(query, db_user.username, db_user.hashed_master_password)
+        await connection.execute(query, db_user.username, db_user.hashed_password)
 
-async def get_encrypted_password(username: str, service_name: str) -> Optional[Tuple[str, str]]:
+async def get_encrypted_password(username: str, service_name: str) -> Optional['models.EncryptedPasswordData']:
     """
     Retrieves the encrypted username and password for a given service.
     This replaces your old retrieve_password method.
@@ -75,5 +79,26 @@ async def get_encrypted_password(username: str, service_name: str) -> Optional[T
         """
         record = await connection.fetchrow(query, username, service_name)
         if record:
-            return (record['encrypted_username'], record['encrypted_password'])
+            return models.EncryptedPasswordData(
+                service_name=service_name,
+                encrypted_username=record['encrypted_username'],
+                encrypted_password=record['encrypted_password']
+            )
         return None
+    
+async def store_encrypted_password(
+    username: str, service_name: str, encrypted_username: str, encrypted_password: str
+):
+    """
+    Saves an encrypted password for a given service.
+    This replaces your old save_password method.
+    """
+    async with pool.acquire() as connection:
+        query = """
+            INSERT INTO passwords (user_id, service_name, encrypted_username, encrypted_password)
+            VALUES (
+                (SELECT id FROM users WHERE username = $1),
+                $2, $3, $4
+            )
+        """
+        await connection.execute(query, username, service_name, encrypted_username, encrypted_password)

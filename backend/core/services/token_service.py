@@ -39,7 +39,7 @@ class TokenService:
         return username
 
     @staticmethod
-    def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    def create_access_token(data: dict, expires_delta: Optional[timedelta] = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)):
             """
             Creates a new JWT access token.
             """

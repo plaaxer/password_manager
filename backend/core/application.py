@@ -24,20 +24,26 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 # --- AUTHENTICATION ---
 
-def authenticate_user(username: str, password: str) -> Optional[str]:
-    return AuthenticationService.authenticate_user(username, password)
+async def authenticate_user(username: str, password: str) -> Optional[dict]:
+    return await AuthenticationService.authenticate_user(username, password)
 
 # -- USER MANAGEMENT ---
 
-def create_user(user: models.UserCreate) -> Optional[models.User]:
-    return UserService.create_user(user)
+async def create_user(user: models.UserCreate) -> Optional[models.User]:
+    return await UserService.create_user(user)
 
 # -- PASSWORD MANAGEMENT ---
 
-def get_password(
-    username: str, service_name: str, master_password: str
-) -> Optional[models.PasswordData]:
+async def get_password(token: str, password_request: 'models.PasswordRequest', service_name: str) -> 'models.PasswordData':
     """
     Retrieves and decrypts the password for a given service.
     """
-    return UserService.get_and_decrypt_password(username, service_name, master_password)
+    username = get_username_from_token(token)
+    if username is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )
+
+    return await UserService.get_and_decrypt_password(username, service_name,
+                                                      password_request.master_password)

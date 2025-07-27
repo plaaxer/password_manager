@@ -61,7 +61,7 @@ class UserInDB(User):
 
 
 # ====================================================================
-# User Models
+# Password Models
 # ====================================================================
 
 class PasswordData(BaseModel):
@@ -72,3 +72,18 @@ class PasswordData(BaseModel):
     service_name: str = Field(..., description="The name of the service for which the password is stored.")
     username: str = Field(..., description="The decrypted username for the service.")
     password: str = Field(..., description="The decrypted password for the service.")
+
+class EncryptedPasswordData(BaseModel):
+    """
+    Model for representing a password that is yet encrypted.
+    """
+    service_name: str = Field(..., description="The name of the service for which the password is stored.")
+    encrypted_username: str = Field(..., description="The hashed username for the service.")
+    encrypted_password: str = Field(..., description="The hashed password for the service.")
+
+class PasswordRequest(BaseModel):
+    """
+    Model for the request body when fetching a password.
+    This is used to securely transport the master password needed for decryption.
+    """
+    master_password: str = Field(..., description="The user's master password, required for on-the-fly decryption.")

@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import timedelta
 
 from ..core import application
-import models
+import backend.core.models as models
 
 router = APIRouter()
 
@@ -27,10 +27,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     user = await application.authenticate_user(form_data.username, form_data.password)
 
     # 2. If valid, create a JWT access token.
-    access_token_expires = timedelta(minutes=application.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = application.create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
+    access_token = application.create_access_token(data={"sub": user.username})
     
     # 3. Return the token. FastAPI validates this dict against models.Token.
     return {"access_token": access_token, "token_type": "bearer"}
@@ -51,30 +48,10 @@ async def register_user(registration_data: models.UserCreate):
 @router.get("/passwords/{service_name}", response_model=models.PasswordData)
 async def get_password(
     service_name: str, 
-    request_data: models.PasswordRequest, # Use the model from models.py
-    token: str = Depends(oauth2_scheme)
-):
+    request_data: 'models.PasswordRequest',
+    token: str = Depends(oauth2_scheme)):
+
     """
     A protected endpoint to retrieve a decrypted password.
     """
-    username = application.get_username_from_token(token)
-    if username is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-        )
-
-    # The service function does the heavy lifting: fetches, decrypts, and returns data.
-    decrypted_data = await application.get_password(
-        username=username,
-        service_name=service_name,
-        master_password=request_data.master_password
-    )
-
-    if not decrypted_data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Service '{service_name}' not found for user '{username}'."
-        )
-
-    return decrypted_data
+    return await application.get_password(service_name=service_name, token=token, password_request=request_data)

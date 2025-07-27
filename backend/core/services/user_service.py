@@ -1,4 +1,5 @@
 from fastapi import HTTPException, status
+from typing import Optional
 
 from .. import database, crypto, models
 
@@ -22,9 +23,9 @@ class UserService:
                 detail="Username already registered",
             )
         
-        hashed_password = crypto.hash_key(user.master_password)
+        hashed_password = crypto.hash_key(user.password)
         
-        db_user = models.UserCreate(username=user.username, hashed_master_password=hashed_password)
+        db_user = models.UserInDB(username=user.username, hashed_password=hashed_password)
         await database.save_user(db_user)
 
         if not db_user:
@@ -39,12 +40,8 @@ class UserService:
     async def get_and_decrypt_password(username: str, service_name: str, master_password: str) -> 'models.PasswordData':
         """
         Retrieves and decrypts the password for a given service.
-        This function will:
-        1. Fetch the encrypted password from the database.
-        2. Generate a Fernet key using the master password.
-        3. Decrypt the password.
         """
-        encrypted_data = await database.get_encrypted_password(username, service_name)
+        encrypted_data: Optional['models.EncryptedPasswordData'] = await database.get_encrypted_password(username, service_name)
 
         if not encrypted_data:
             raise HTTPException(
@@ -52,10 +49,9 @@ class UserService:
                 detail="Password not found",
             )
         
-        fernet = crypto.generate_fernet(master_password, encrypted_data.salt)
-        
-        decrypted_username = crypto.decrypt_data(encrypted_data.encrypted_username, fernet).decode()
-        decrypted_password = crypto.decrypt_data(encrypted_data.encrypted_password, fernet).decode()
+        decrypted_username, decrypted_password = crypto.get_decrypted(encrypted_username=encrypted_data.encrypted_username,
+                                                                      encrypted_password=encrypted_data.encrypted_password,
+                                                                      master_key=master_password)
 
         return models.PasswordData(
             service_name=service_name,
