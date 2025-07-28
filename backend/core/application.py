@@ -24,12 +24,12 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 # --- AUTHENTICATION ---
 
-async def authenticate_user(username: str, password: str) -> Optional[dict]:
+async def authenticate_user(username: str, password: str) -> models.UserInDB:
     return await AuthenticationService.authenticate_user(username, password)
 
 # -- USER MANAGEMENT ---
 
-async def create_user(user: models.UserCreate) -> Optional[models.User]:
+async def create_user(user: models.UserCreate) -> models.UserInDB:
     return await UserService.create_user(user)
 
 # -- PASSWORD MANAGEMENT ---

@@ -6,3 +6,4 @@ cryptography
 pyyaml
 jose
 passlib
+asyncpg

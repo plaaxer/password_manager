@@ -38,8 +38,6 @@ async def register_user(registration_data: models.UserCreate):
     """
     Endpoint to register a new user.
     """
-    # The service layer handles the logic of checking for existing users,
-    # hashing the password, and storing the new user.
     new_user = await application.create_user(user=registration_data)
 
     return {"message": f"User {new_user.username} registered successfully."}

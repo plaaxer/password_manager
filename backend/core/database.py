@@ -39,22 +39,21 @@ async def close_db_connection():
 # --- Database Functions (Replaces Communicator methods) ---
 # Each function is async and takes a connection from the pool.
 
-# TODO: user should return a User object, not a dict
-
-async def get_user(username: str) -> Optional[dict]:
+async def get_user(username: str) -> Optional['models.UserInDB']:
     """
     Fetches a user by their username.
     This function corresponds to your old get_master_key_hash.
-    
-    NOTE: In a real app, you'd have a proper users table instead of.
-    This is adapted from your original structure.
     """
-    # Use 'async with' to get a connection from the pool
+
     async with pool.acquire() as connection:
-        # Use parameterized queries ($1, $2) to prevent SQL injection
+
         query = "SELECT username, hashed_master_password FROM users WHERE username = $1"
         user_record = await connection.fetchrow(query, username)
-        return dict(user_record) if user_record else None
+        if user_record:
+            return models.UserInDB(
+                username=user_record['username'],
+                hashed_password=user_record['hashed_master_password']
+            )
 
 async def save_user(db_user: 'models.UserInDB'):
     """Saves a new user to the database."""

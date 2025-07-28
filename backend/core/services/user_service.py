@@ -6,7 +6,7 @@ from .. import database, crypto, models
 class UserService:
 
     @staticmethod
-    async def create_user(user: 'models.UserCreate'):
+    async def create_user(user: 'models.UserCreate') -> 'models.UserInDB':
         """
         Creates a new user in the database.
         This function will:
