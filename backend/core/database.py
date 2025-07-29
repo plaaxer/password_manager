@@ -3,12 +3,28 @@
 import os
 import asyncpg
 from typing import Optional, Tuple
+import functools
 
 from . import models
 
 # --- Connection Pool Management ---
-# The pool will be created when the application starts and managed globally.
+
 pool: Optional[asyncpg.Pool] = None
+
+
+def with_connection(func):
+    """
+    Decorator that provides a database connection to a function.
+    It handles checking the pool and acquiring the connection.
+    """
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        if pool is None:
+            raise RuntimeError("Database connection pool is not initialized.")
+        
+        async with pool.acquire() as connection:
+            return await func(connection, *args, **kwargs)
+    return wrapper
 
 async def connect_to_db():
     """Creates the database connection pool. Called on application startup."""
@@ -36,68 +52,65 @@ async def close_db_connection():
         await pool.close()
         print("Database connection pool closed.")
 
-# --- Database Functions (Replaces Communicator methods) ---
-# Each function is async and takes a connection from the pool.
+# --- Database Functions ---
 
-async def get_user(username: str) -> Optional['models.UserInDB']:
+@with_connection
+async def get_user(connection: asyncpg.Connection, username: str) -> Optional['models.UserInDB']:
     """
     Fetches a user by their username.
     This function corresponds to your old get_master_key_hash.
     """
+    query = "SELECT username, hashed_master_password FROM users WHERE username = $1"
+    user_record = await connection.fetchrow(query, username)
+    if user_record:
+        return models.UserInDB(
+            username=user_record['username'],
+            hashed_password=user_record['hashed_master_password']
+        )
 
-    async with pool.acquire() as connection:
-
-        query = "SELECT username, hashed_master_password FROM users WHERE username = $1"
-        user_record = await connection.fetchrow(query, username)
-        if user_record:
-            return models.UserInDB(
-                username=user_record['username'],
-                hashed_password=user_record['hashed_master_password']
-            )
-
-async def save_user(db_user: 'models.UserInDB'):
+@with_connection
+async def save_user(connection: asyncpg.Connection, db_user: 'models.UserInDB'):
     """Saves a new user to the database."""
-    async with pool.acquire() as connection:
-        query = "INSERT INTO users (username, hashed_master_password) VALUES ($1, $2)"
-        await connection.execute(query, db_user.username, db_user.hashed_password)
+    query = "INSERT INTO users (username, hashed_master_password) VALUES ($1, $2)"
+    await connection.execute(query, db_user.username, db_user.hashed_password)
 
-async def get_encrypted_password(username: str, service_name: str) -> Optional['models.EncryptedPasswordData']:
+@with_connection
+async def get_encrypted_password(connection: asyncpg.Connection, username: str, service_name: str) -> Optional['models.EncryptedPasswordData']:
     """
     Retrieves the encrypted username and password for a given service.
     This replaces your old retrieve_password method.
     """
-    # IMPORTANT: The schema-per-user model is very difficult to manage and secure.
-    # A better model is to have a single 'passwords' table with a 'user_id' column.
-    # This implementation follows that better practice.
-    async with pool.acquire() as connection:
-        query = """
-            SELECT p.encrypted_username, p.encrypted_password
-            FROM passwords p
-            JOIN users u ON p.user_id = u.id
-            WHERE u.username = $1 AND p.service_name = $2
-        """
-        record = await connection.fetchrow(query, username, service_name)
-        if record:
-            return models.EncryptedPasswordData(
-                service_name=service_name,
-                encrypted_username=record['encrypted_username'],
-                encrypted_password=record['encrypted_password']
-            )
-        return None
-    
+    query = """
+        SELECT p.encrypted_username, p.encrypted_password
+        FROM passwords p
+        JOIN users u ON p.user_id = u.id
+        WHERE u.username = $1 AND p.service_name = $2
+    """
+    record = await connection.fetchrow(query, username, service_name)
+    if record:
+        return models.EncryptedPasswordData(
+            service_name=service_name,
+            encrypted_username=record['encrypted_username'],
+            encrypted_password=record['encrypted_password']
+        )
+    return None
+
+@with_connection
 async def store_encrypted_password(
-    username: str, service_name: str, encrypted_username: str, encrypted_password: str
+    connection: asyncpg.Connection,
+    username: str, 
+    service_name: str, 
+    encrypted_username: str, 
+    encrypted_password: str
 ):
     """
     Saves an encrypted password for a given service.
-    This replaces your old save_password method.
     """
-    async with pool.acquire() as connection:
-        query = """
-            INSERT INTO passwords (user_id, service_name, encrypted_username, encrypted_password)
-            VALUES (
-                (SELECT id FROM users WHERE username = $1),
-                $2, $3, $4
-            )
-        """
-        await connection.execute(query, username, service_name, encrypted_username, encrypted_password)
+    query = """
+        INSERT INTO passwords (user_id, service_name, encrypted_username, encrypted_password)
+        VALUES (
+            (SELECT id FROM users WHERE username = $1),
+            $2, $3, $4
+        )
+    """
+    await connection.execute(query, username, service_name, encrypted_username, encrypted_password)
