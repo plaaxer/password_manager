@@ -47,3 +47,15 @@ async def get_password(token: str, password_request: 'models.PasswordRequest', s
 
     return await UserService.get_and_decrypt_password(username, service_name,
                                                       password_request.master_password)
+
+async def store_password(username: str, service_name: str, password_data: 'models.PasswordData'):
+    """
+    Encrypts and stores the password for a given service.
+    """
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )
+
+    await UserService.store_password(username, service_name, password_data)

@@ -73,6 +73,14 @@ class PasswordData(BaseModel):
     username: str = Field(..., description="The decrypted username for the service.")
     password: str = Field(..., description="The decrypted password for the service.")
 
+class PasswordCreate(BaseModel):
+    """
+    Model for creating a new password entry.
+    This is used when storing a new password for a service.
+    """
+    username: str = Field(..., description="The username for the service.")
+    password: str = Field(..., description="The password for the service. This will be encrypted before storage.")
+
 class EncryptedPasswordData(BaseModel):
     """
     Model for representing a password that is yet encrypted.
