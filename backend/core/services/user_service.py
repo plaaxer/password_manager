@@ -58,3 +58,10 @@ class UserService:
             username=decrypted_username,
             password=decrypted_password
         )
+    
+    @staticmethod
+    async def store_and_encrypt_password(username: str, service_name: str, password_create: 'models.PasswordCreate'):
+        """
+        Encrypts and stores the password for a given service.
+        """
+        pass

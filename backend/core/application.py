@@ -48,7 +48,7 @@ async def get_password(token: str, password_request: 'models.PasswordRequest', s
     return await UserService.get_and_decrypt_password(username, service_name,
                                                       password_request.master_password)
 
-async def store_password(username: str, service_name: str, password_data: 'models.PasswordData'):
+async def store_password(username: str, service_name: str, password_data: 'models.PasswordCreate'):
     """
     Encrypts and stores the password for a given service.
     """
@@ -58,4 +58,4 @@ async def store_password(username: str, service_name: str, password_data: 'model
             detail="Invalid token",
         )
 
-    await UserService.store_password(username, service_name, password_data)
+    await UserService.store_and_encrypt_password(username, service_name, password_data)
