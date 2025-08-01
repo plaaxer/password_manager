@@ -64,13 +64,7 @@ async def store_password(
     """
     A protected endpoint to store an encrypted password.
     """
-    username = application.get_username_from_token(token)
-    if not username:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-        )
 
-    await application.store_password(username=username, service_name=service_name, password_data=password_data)
+    await application.store_password(token=token, service_name=service_name, password_data=password_data)
 
     return {"message": f"Password for {service_name} stored successfully."}

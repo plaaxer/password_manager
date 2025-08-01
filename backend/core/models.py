@@ -80,6 +80,7 @@ class PasswordCreate(BaseModel):
     """
     username: str = Field(..., description="The username for the service.")
     password: str = Field(..., description="The password for the service. This will be encrypted before storage.")
+    master_password: str = Field(..., description="The user's master password, required for encryption.")
 
 class EncryptedPasswordData(BaseModel):
     """

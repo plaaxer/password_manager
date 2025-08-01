@@ -64,4 +64,14 @@ class UserService:
         """
         Encrypts and stores the password for a given service.
         """
-        pass
+        encrypted_data = crypto.get_encrypted(
+            username=password_create.username,
+            password=password_create.password,
+            master_key=password_create.master_password
+        )
+        await database.store_encrypted_password(
+            username=username,
+            service_name=service_name,
+            encrypted_username=encrypted_data[0],
+            encrypted_password=encrypted_data[1]
+        )
