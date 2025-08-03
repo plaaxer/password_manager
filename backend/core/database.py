@@ -2,23 +2,25 @@
 
 import os
 import asyncpg
-from typing import Optional, Tuple
 import functools
+from typing import Callable, Coroutine, TypeVar, ParamSpec, Optional, Any, Concatenate
 
 from . import models
+
+P = ParamSpec('P')
+R = TypeVar('R')
 
 # --- Connection Pool Management ---
 
 pool: Optional[asyncpg.Pool] = None
 
-
-def with_connection(func):
+# manually defining types for pylance compatibility
+def with_connection(func: Callable[Concatenate[asyncpg.Connection, P], Coroutine[Any, Any, R]]) -> Callable[P, Coroutine[Any, Any, R]]:
     """
     Decorator that provides a database connection to a function.
-    It handles checking the pool and acquiring the connection.
     """
     @functools.wraps(func)
-    async def wrapper(*args, **kwargs):
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         if pool is None:
             raise RuntimeError("Database connection pool is not initialized.")
         
