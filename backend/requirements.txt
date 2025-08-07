@@ -4,6 +4,7 @@ psycopg2-binary
 argon2-cffi
 cryptography
 pyyaml
-jose
+python-jose>=3.3.0
+python-multipart
 passlib
 asyncpg

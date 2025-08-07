@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import timedelta
 
-from ..core import application
-import backend.core.models as models
+import core.application as application
+import core.models as models
 
 router = APIRouter()
 

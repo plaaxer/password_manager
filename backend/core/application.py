@@ -7,10 +7,10 @@ from typing import Optional
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 
-from backend.core.services.token_service import TokenService
-from backend.core.services.authentication_service import AuthenticationService
-from backend.core.services.user_service import UserService
-from backend.core import database, models
+from core.services.token_service import TokenService
+from core.services.authentication_service import AuthenticationService
+from core.services.user_service import UserService
+from core import database, models
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
