@@ -1,10 +1,18 @@
+-- backend/configs/init.sql
 
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    hashed_master_password TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
--- Create the schema for your application
-CREATE SCHEMA IF NOT EXISTS stashes_info;
-
--- Create the stashes table within that schema
-CREATE TABLE IF NOT EXISTS stashes_info.stashes (
-    stash_name TEXT PRIMARY KEY,
-    master_key_hash TEXT NOT NULL
+CREATE TABLE IF NOT EXISTS passwords (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    service_name TEXT NOT NULL,
+    encrypted_username TEXT NOT NULL,
+    encrypted_password TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, service_name)
 );
