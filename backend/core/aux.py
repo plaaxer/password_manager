@@ -2,10 +2,6 @@ import yaml
 import argparse
 import getpass
 
-def get_conn_params() -> dict:
-    with open("configs/config.yaml", "r") as file:
-        return yaml.safe_load(file)["conn_params"]
-
 def get_options() -> str:
     with open("configs/config.yaml", "r") as file:
         return yaml.safe_load(file)["options"]
@@ -31,11 +27,3 @@ def set_active_status(status: bool) -> None:
 def get_salt_length() -> int:
     with open("configs/config.yaml", "r") as file:
         return yaml.safe_load(file)["options"]["salt_length"]
-
-def get_master_key() -> str:
-    while True:
-        mk = getpass.getpass("Enter master key: ")
-        mk2 = getpass.getpass("Confirm master key: ")
-        if mk == mk2:
-            return mk
-        print("Master keys do not match. Try again.")
