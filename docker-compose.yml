@@ -11,6 +11,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/configs/init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   backend:
     container_name: pwmanager_backend
@@ -28,7 +33,8 @@ services:
       - ALGORITHM=${ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
     depends_on:
-      - db
+        db:
+          condition: service_healthy
     restart: unless-stopped
 
 volumes:

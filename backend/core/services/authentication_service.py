@@ -5,6 +5,9 @@ from .. import crypto
 from .. import database
 from .. import models
 
+from ..utils.logger import Logger
+logger = Logger(__name__).get_logger()
+
 class AuthenticationService:
 
     @staticmethod
@@ -24,4 +27,8 @@ class AuthenticationService:
     
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
-        return crypto.verify_key(plain_password, hashed_password)
+        correct_password = crypto.verify_key(plain_password, hashed_password)
+        if not correct_password:
+            logger.debug(f"[DEBUG] Password verification failed.")
+            print(f"DDDDD")
+        return correct_password

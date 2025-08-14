@@ -10,7 +10,10 @@ from fastapi import Depends, HTTPException, status
 from core.services.token_service import TokenService
 from core.services.authentication_service import AuthenticationService
 from core.services.user_service import UserService
+from core.utils.logger import Logger
 from core import database, models
+
+logger = Logger(__name__).get_logger()
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 

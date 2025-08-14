@@ -7,7 +7,7 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-import core.aux as aux
+import core.utils.aux as aux
 
 def hash_key(master_key: str) -> str:
     """Hashes the key utilizing argon2. Renamed from 'hash' to avoid conflict with built-in."""
