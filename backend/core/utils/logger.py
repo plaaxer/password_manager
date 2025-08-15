@@ -22,7 +22,7 @@ class Logger:
 
     def _get_log_level(self) -> int:
         """Get logging level from env or default to DEBUG"""
-        level_str = os.getenv("LOG_LEVEL", "INFO").upper()
+        level_str = os.getenv("LOG_LEVEL", "DEBUG").upper()
         return getattr(logging, level_str, logging.DEBUG)
 
     def _get_formatter(self) -> logging.Formatter:

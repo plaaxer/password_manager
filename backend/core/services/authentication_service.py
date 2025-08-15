@@ -29,6 +29,6 @@ class AuthenticationService:
     def verify_password(plain_password: str, hashed_password: str) -> bool:
         correct_password = crypto.verify_key(plain_password, hashed_password)
         if not correct_password:
-            logger.debug(f"[DEBUG] Password verification failed.")
-            print(f"DDDDD")
+            logger.debug(f"Password verification failed.")
+            print("TEMP: Plain Password:", plain_password)
         return correct_password

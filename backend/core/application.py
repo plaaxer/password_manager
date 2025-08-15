@@ -6,6 +6,8 @@ from typing import Optional
 
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import SecretStr
 
 from core.services.token_service import TokenService
 from core.services.authentication_service import AuthenticationService
@@ -27,8 +29,31 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 # --- AUTHENTICATION ---
 
-async def authenticate_user(username: str, password: str) -> models.UserInDB:
-    return await AuthenticationService.authenticate_user(username, password)
+async def login(form_data: 'OAuth2PasswordRequestForm') -> models.Token:
+    """
+    Handles the initial login. The user posts their username
+    and password (the master password).
+    
+    If authentication is successful, it returns a JWT.
+    """
+
+    logger.debug(f"Attempting to authenticate user {form_data.username}.")
+
+    # 1. Authenticate the user. The service layer handles exceptions.
+    user = await authenticate_user(form_data.username, form_data.password)
+
+    logger.debug(f"User {user.username} authenticated successfully.")   
+
+    # 2. If valid, create a JWT access token.
+    access_token = create_access_token(data={"sub": user.username})
+
+    logger.debug(f"Access token created for user {user.username}.")
+    
+    # 3. Return the token. FastAPI validates this dict against models.Token.
+    return {"access_token": access_token, "token_type": "bearer"}
+
+async def authenticate_user(username: str, password: SecretStr) -> models.UserInDB:
+    return await AuthenticationService.authenticate_user(username, password.get_secret_value())
 
 # -- USER MANAGEMENT ---
 

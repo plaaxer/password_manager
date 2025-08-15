@@ -3,6 +3,9 @@ from typing import Optional
 
 from .. import database, crypto, models
 
+from ..utils.logger import Logger
+logger = Logger(__name__).get_logger()
+
 class UserService:
 
     @staticmethod
@@ -14,10 +17,10 @@ class UserService:
         2. Hash the master password.
         3. Save the user to the database.
         """
-        # Check if user already exists
         existing_user = await database.get_user(user.username)
 
         if existing_user:
+            logger.warning(f"Attempt to register already existing username: {user.username}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Username already registered",
@@ -29,10 +32,14 @@ class UserService:
         await database.save_user(db_user)
 
         if not db_user:
+            logger.error(f"Failed to create user {user.username}.")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create user",
             )
+        
+        logger.info(f"User {user.username} created successfully.")
+        print("AAAAAAAAAAAAAAAAAAA")
         
         return db_user
     
@@ -44,6 +51,7 @@ class UserService:
         encrypted_data: Optional['models.EncryptedPasswordData'] = await database.get_encrypted_password(username, service_name)
 
         if not encrypted_data:
+            logger.warning(f"Password for service '{service_name}' not found for user '{username}'.")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Password not found",
