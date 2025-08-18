@@ -50,14 +50,13 @@ async def get_password(
     """
     return await application.get_password(service_name=service_name, token=token, password_request=request_data)
 
-# todo: post should be at password only, model with service name
 @router.post("/passwords")
 async def store_password(
     service_name: str, 
     password_data: models.PasswordCreate,
     token: str = Depends(oauth2_scheme)):
 
-    """
+    """s
     A protected endpoint to store an encrypted password.
     """
 

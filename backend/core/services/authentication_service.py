@@ -30,5 +30,4 @@ class AuthenticationService:
         correct_password = crypto.verify_key(plain_password, hashed_password)
         if not correct_password:
             logger.debug(f"Password verification failed.")
-            print("TEMP: Plain Password:", plain_password)
         return correct_password

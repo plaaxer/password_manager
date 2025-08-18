@@ -53,7 +53,7 @@ async def login(form_data: 'OAuth2PasswordRequestForm') -> models.Token:
     return {"access_token": access_token, "token_type": "bearer"}
 
 async def authenticate_user(username: str, password: SecretStr) -> models.UserInDB:
-    return await AuthenticationService.authenticate_user(username, password.user_value())
+    return await AuthenticationService.authenticate_user(username, password)
 
 # -- USER MANAGEMENT ---
 
