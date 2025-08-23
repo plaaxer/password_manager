@@ -52,7 +52,6 @@ async def get_password(
 
 @router.post("/passwords")
 async def store_password(
-    service_name: str, 
     password_data: models.PasswordCreate,
     token: str = Depends(oauth2_scheme)):
 
@@ -60,6 +59,6 @@ async def store_password(
     A protected endpoint to store an encrypted password.
     """
 
-    await application.store_password(token=token, service_name=service_name, password_data=password_data)
+    await application.store_password(token=token, service_name=password_data.service_name, password_data=password_data)
 
-    return {"message": f"Password for {service_name} stored successfully."}
+    return {"message": f"Password for {password_data.service_name} stored successfully."}

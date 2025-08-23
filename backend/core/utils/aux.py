@@ -13,17 +13,6 @@ def set_dbname(dbname: str) -> None:
     with open("configs/config.yaml", "w") as file:
         yaml.dump(data, file)
 
-def get_active_status() -> str:
-    with open("configs/config.yaml", "r") as file:
-        return yaml.safe_load(file)["active_status"]
-
-def set_active_status(status: bool) -> None:
-    with open("configs/config.yaml", "r") as file:
-        data = yaml.safe_load(file)
-        data["active_status"] = status
-    with open("configs/config.yaml", "w") as file:
-        yaml.dump(data, file)
-
 def get_salt_length() -> int:
     with open("configs/config.yaml", "r") as file:
         return yaml.safe_load(file)["options"]["salt_length"]

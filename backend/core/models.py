@@ -78,6 +78,7 @@ class PasswordCreate(BaseModel):
     Model for creating a new password entry.
     This is used when storing a new password for a service.
     """
+    service_name: str = Field(..., description="The name of the service for which the password is being stored.")
     username: str = Field(..., description="The username for the service.")
     password: str = Field(..., description="The password for the service. This will be encrypted before storage.")
     master_password: str = Field(..., description="The user's master password, required for encryption.")

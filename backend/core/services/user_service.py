@@ -39,7 +39,6 @@ class UserService:
             )
         
         logger.info(f"User {user.username} created successfully.")
-        print("AAAAAAAAAAAAAAAAAAA")
         
         return db_user
     
