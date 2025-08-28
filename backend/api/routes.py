@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import timedelta
 
 import core.application as application
-import core.models as models
+import api.models as models
 
 router = APIRouter()
 
@@ -55,10 +55,46 @@ async def store_password(
     password_data: models.PasswordCreate,
     token: str = Depends(oauth2_scheme)):
 
-    """s
+    """
     A protected endpoint to store an encrypted password.
     """
 
     await application.store_password(token=token, service_name=password_data.service_name, password_data=password_data)
 
     return {"message": f"Password for {password_data.service_name} stored successfully."}
+
+@router.put("/passwords/{service_name}")
+async def update_password(
+    service_name: str,
+    password_data: models.PasswordCreate,
+    token: str = Depends(oauth2_scheme)):
+
+    """
+    A protected endpoint to update an existing encrypted password.
+    """
+
+    await application.store_password(token=token, service_name=service_name, password_data=password_data)
+
+    return {"message": f"Password for {service_name} updated successfully."}
+
+@router.delete("/passwords/{service_name}")
+async def delete_password(
+    service_name: str,
+    token: str = Depends(oauth2_scheme)):
+
+    """
+    A protected endpoint to delete an existing password.
+    """
+
+    await application.delete_password(token=token, service_name=service_name)
+
+    return {"message": f"Password for {service_name} deleted successfully."}
+
+@router.get("/passwords", response_model=list[models.PasswordMetadata])
+async def list_passwords(token: str = Depends(oauth2_scheme)):
+
+    """
+    A protected endpoint to list all stored passwords' metadata.
+    """
+
+    return await application.list_passwords(token=token)
