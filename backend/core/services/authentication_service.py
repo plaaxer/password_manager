@@ -3,7 +3,7 @@ from typing import Optional
 
 from .. import crypto
 from .. import database
-from .. import models
+from api import models
 
 from ..utils.logger import Logger
 logger = Logger(__name__).get_logger()

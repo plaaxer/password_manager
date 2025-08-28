@@ -1,6 +1,5 @@
 # backend/core/application.py
 
-import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -9,11 +8,12 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import SecretStr
 
+from api import models
 from core.services.token_service import TokenService
 from core.services.authentication_service import AuthenticationService
 from core.services.user_service import UserService
 from core.utils.logger import Logger
-from core import database, models
+from core import database
 
 logger = Logger(__name__).get_logger()
 
@@ -39,17 +39,14 @@ async def login(form_data: 'OAuth2PasswordRequestForm') -> models.Token:
 
     logger.debug(f"Attempting to authenticate user {form_data.username}.")
 
-    # 1. Authenticate the user. The service layer handles exceptions.
     user = await authenticate_user(form_data.username, form_data.password)
 
     logger.debug(f"User {user.username} authenticated successfully.")   
 
-    # 2. If valid, create a JWT access token.
     access_token = create_access_token(data={"sub": user.username})
 
-    logger.debug(f"Access token created for user {user.username}.")
+    logger.info(f"Access token created for user {user.username}.")
     
-    # 3. Return the token. FastAPI validates this dict against models.Token.
     return {"access_token": access_token, "token_type": "bearer"}
 
 async def authenticate_user(username: str, password: SecretStr) -> models.UserInDB:
@@ -72,9 +69,15 @@ async def get_password(token: str, password_request: 'models.PasswordRequest', s
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
         )
-
-    return await UserService.get_and_decrypt_password(username, service_name,
-                                                      password_request.master_password)
+    try:
+        return await UserService.get_and_decrypt_password(username, service_name,
+                                                        password_request.master_password)
+    except Exception as e:
+        logger.error(f"Error retrieving password for user '{username}' and service '{service_name}': {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not retrieve password"
+        )
 
 async def store_password(token: str, service_name: str, password_data: 'models.PasswordCreate'):
     """
@@ -88,3 +91,35 @@ async def store_password(token: str, service_name: str, password_data: 'models.P
         )
 
     await UserService.store_and_encrypt_password(username, service_name, password_data)
+
+async def delete_password(token: str, service_name: str):
+    """
+    Deletes the password entry for a given service.
+    """
+    username = get_username_from_token(token)
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
+    
+    await database.delete_encrypted_password(username, service_name)
+
+async def list_passwords(token: str) -> list['models.PasswordMetadata']:
+    """
+    Lists all stored passwords for the authenticated user without revealing sensitive data.
+    """
+    username = get_username_from_token(token)
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
+    try:
+        return await database.list_encrypted_passwords(username)
+    except Exception as e:
+        logger.error(f"Error listing passwords for user '{username}': {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not retrieve passwords"
+        )

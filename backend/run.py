@@ -42,7 +42,7 @@ app = FastAPI(
     openapi_extra=security_schemes,
 )
 
-app.include_router(routes.router, prefix="/api/v1")
+app.include_router(routes.router, prefix="/api/v2")
 
 @app.get("/", tags=["Health Check"])
 def read_root():

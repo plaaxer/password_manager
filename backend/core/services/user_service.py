@@ -1,7 +1,9 @@
 from fastapi import HTTPException, status
 from typing import Optional
 
-from .. import database, crypto, models
+from api import models
+
+from .. import database, crypto
 
 from ..utils.logger import Logger
 logger = Logger(__name__).get_logger()
@@ -56,6 +58,8 @@ class UserService:
                 detail="Password not found",
             )
         
+        logger.debug(f"Retrieving encrypted data for user '{username}' and service '{service_name}'.")
+        
         decrypted_username, decrypted_password = crypto.get_decrypted(encrypted_username=encrypted_data.encrypted_username,
                                                                       encrypted_password=encrypted_data.encrypted_password,
                                                                       master_key=master_password)
@@ -76,9 +80,31 @@ class UserService:
             password=password_create.password,
             master_key=password_create.master_password
         )
+        
+        logger.debug(f"Storing encrypted data for user '{username}' and service '{service_name}'.")
+
         await database.store_encrypted_password(
             username=username,
             service_name=service_name,
             encrypted_username=encrypted_data[0],
             encrypted_password=encrypted_data[1]
         )
+
+    @staticmethod
+    async def list_stored_passwords(username: str, master_password: str) -> list['models.PasswordMetadata']:
+        """
+        Lists all stored passwords for the user without revealing sensitive data.
+        """
+        records = await database.list_encrypted_passwords(username)
+        metadata_list = [
+            models.PasswordMetadata(
+                service_name=record['service_name'],
+                username=record['encrypted_username'],
+                updated_at=record['updated_at']
+            ) for record in records
+        ]
+        for metadata in metadata_list:
+            logger.debug(f"Found stored password for service '{metadata.service_name}' for user '{username}'.")
+            metadata.username = crypto.get_single_decrypted(metadata.username, master_password)
+            
+        return metadata_list

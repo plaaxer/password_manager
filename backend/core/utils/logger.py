@@ -27,7 +27,7 @@ class Logger:
 
     def _get_formatter(self) -> logging.Formatter:
         return logging.Formatter(
-            fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+            fmt="%(levelname)s | %(message)s | %(name)s | %(asctime)s",
             datefmt="%Y-%m-%d %H:%M:%S"
         )
 

@@ -5,7 +5,7 @@ import asyncpg
 import functools
 from typing import Callable, Coroutine, TypeVar, ParamSpec, Optional, Any, Concatenate
 
-from . import models
+from api import models
 
 P = ParamSpec('P')
 R = TypeVar('R')
@@ -106,7 +106,7 @@ async def store_encrypted_password(
     encrypted_password: str
 ):
     """
-    Saves an encrypted password for a given service.
+    Saves or updates an encrypted password for a given service (upsert).
     """
     query = """
         INSERT INTO passwords (user_id, service_name, encrypted_username, encrypted_password)
@@ -114,5 +114,42 @@ async def store_encrypted_password(
             (SELECT id FROM users WHERE username = $1),
             $2, $3, $4
         )
+        ON CONFLICT (user_id, service_name) 
+        DO UPDATE SET
+            encrypted_username = EXCLUDED.encrypted_username,
+            encrypted_password = EXCLUDED.encrypted_password,
+            updated_at = CURRENT_TIMESTAMP;
     """
-    await connection.execute(query, username, service_name, encrypted_username, encrypted_password)
+    await connection.execute(
+        query, 
+        username, 
+        service_name, 
+        encrypted_username, 
+        encrypted_password
+    )
+
+@with_connection
+async def delete_encrypted_password(connection: asyncpg.Connection, username: str, service_name: str):
+    """
+    Deletes an encrypted password entry for a given service.
+    """
+    query = """
+        DELETE FROM passwords
+        WHERE user_id = (SELECT id FROM users WHERE username = $1)
+        AND service_name = $2
+    """
+    await connection.execute(query, username, service_name)
+    
+@with_connection
+async def list_passwords_for_user(connection: asyncpg.Connection, username: str) -> list[dict]:
+    """
+    Retrieves metadata for all passwords belonging to a user.
+    """
+    query = """
+        SELECT p.service_name, p.encrypted_username, p.updated_at
+        FROM passwords p
+        JOIN users u ON p.user_id = u.id
+        WHERE u.username = $1
+    """
+    return await connection.fetch(query, username)
+
