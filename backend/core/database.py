@@ -45,14 +45,12 @@ async def connect_to_db():
         host=db_host,
         database=db_name
     )
-    print("Database connection pool created successfully.")
 
 async def close_db_connection():
     """Closes the database connection pool. Called on application shutdown."""
     global pool
     if pool:
         await pool.close()
-        print("Database connection pool closed.")
 
 # --- Database Functions ---
 
@@ -141,7 +139,7 @@ async def delete_encrypted_password(connection: asyncpg.Connection, username: st
     await connection.execute(query, username, service_name)
     
 @with_connection
-async def list_passwords_for_user(connection: asyncpg.Connection, username: str) -> list[dict]:
+async def list_passwords(connection: asyncpg.Connection, username: str) -> list[dict]:
     """
     Retrieves metadata for all passwords belonging to a user.
     """

@@ -1,4 +1,4 @@
-# ./password_manager/backend/run.py
+# /backend/run.py
 
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
@@ -10,9 +10,7 @@ logger = Logger(__name__).get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    This function manages the lifespan of the application, handling startup and shutdown events.
-    """
+
     logger.info("Application startup: Connecting to the database...")
     await database.connect_to_db()
     logger.info("Database connection established.")
@@ -35,8 +33,8 @@ security_schemes = {
 }
 
 app = FastAPI(
-    title="Password Manager API",
-    description="A secure API for managing passwords.",
+    title="Argus Password Manager API",
+    description="A secure API for storing and retrieving passwords.",
     version="2.0.0",
     lifespan=lifespan,
     openapi_extra=security_schemes,
@@ -46,5 +44,5 @@ app.include_router(routes.router, prefix="/api/v2")
 
 @app.get("/", tags=["Health Check"])
 def read_root():
-    return {"message": "Password Manager API is running"}
+    return {"message": "Argus Password Manager API is running"}
 

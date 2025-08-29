@@ -50,7 +50,6 @@ class TokenService:
                 expire = datetime.now(timezone.utc) + timedelta(minutes=15)
             to_encode.update({"exp": expire})
             
-            # Ensure SECRET_KEY is loaded
             if not SECRET_KEY:
                 raise ValueError("SECRET_KEY environment variable not set")
 

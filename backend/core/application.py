@@ -105,7 +105,7 @@ async def delete_password(token: str, service_name: str):
     
     await database.delete_encrypted_password(username, service_name)
 
-async def list_passwords(token: str) -> list['models.PasswordMetadata']:
+async def list_passwords(password_request: models.PasswordRequest, token: str) -> list['models.PasswordMetadata']:
     """
     Lists all stored passwords for the authenticated user without revealing sensitive data.
     """
@@ -116,7 +116,7 @@ async def list_passwords(token: str) -> list['models.PasswordMetadata']:
             detail="Invalid token"
         )
     try:
-        return await database.list_encrypted_passwords(username)
+        return await UserService.list_stored_passwords(username, password_request.master_password)
     except Exception as e:
         logger.error(f"Error listing passwords for user '{username}': {e}")
         raise HTTPException(

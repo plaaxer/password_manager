@@ -94,7 +94,7 @@ class EncryptedPasswordData(BaseModel):
 
 class PasswordRequest(BaseModel):
     """
-    Model for the request body when fetching a password.
+    Model for the request body when fetching passwords.
     This is used to securely transport the master password needed for decryption.
     """
     master_password: str = Field(..., description="The user's master password, required for on-the-fly decryption.")

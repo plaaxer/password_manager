@@ -91,10 +91,10 @@ async def delete_password(
     return {"message": f"Password for {service_name} deleted successfully."}
 
 @router.get("/passwords", response_model=list[models.PasswordMetadata])
-async def list_passwords(token: str = Depends(oauth2_scheme)):
+async def list_passwords(password_data: models.PasswordRequest, token: str = Depends(oauth2_scheme)):
 
     """
     A protected endpoint to list all stored passwords' metadata.
     """
 
-    return await application.list_passwords(token=token)
+    return await application.list_passwords(password_request=password_data, token=token)
