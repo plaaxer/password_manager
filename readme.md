@@ -1,39 +1,31 @@
 # Argus Password Manager
 
-A fully functional and secure password manager built on a modern client-server architecture. The backend is powered by **Python**, **Cryptography**, **FastAPI**, and **PostgreSQL**, all containerized with **Docker** for easy setup and deployment.
-
+Argus is a secure-by-design password management system built with a client-server architecture. It utilizes Python, FastAPI, and PostgreSQL, fully containerized with Docker for ease of deployment.
 The name Argus comes from [Argus Panoptes](https://en.wikipedia.org/wiki/Argus_Panoptes), the all-seeing giant in Greek mythology.
 
 ---
 
-## What's New in v2.0.0
+## Architecture and Security Notice
+While all data is stored encrypted in the database, the plain text password must be sent to the server for the encryption/decryption process to occur. Because the server "sees" the secret during transit and processing:
 
-This is a complete architectural rewrite of the original Password Manager.
+- **Intended Use**: This application is currently designed to be run locally or within a trusted private network.
 
-- **Backend API:**  
-    The command-line interface has been replaced with a robust, stateless RESTful API built with FastAPI.
+- **Trust Model**: The user must trust the host server and the integrity of the transit layer (HTTPS).
 
-- **Client-Server Model:**  
-    The application is now split into a backend (which you can host remotely) and a future frontend, allowing for greater flexibility.
 
-- **Standardized Authentication:**  
-    Implements JWT (JSON Web Token) for secure, stateless authentication.
-
-- **Simplified Setup:**  
-    A single script and docker compose are all you need to get a full environment running.
+**IMPORTANT**: Do NOT run this version in a remote server without secure HTTPS connections. It will be vulnerable to MITM and other attacks.
 
 ---
 
-## Features
+## Technical Features
 
-- **Zero-Knowledge Encryption:**  
-    All usernames and passwords are encrypted using a key derived from your master password. The server never stores the master password, ensuring only you can decrypt your data.
+- **Robust Encryption**: Stored credentials are encrypted using the Fernet algorithm (AES-128 in CBC mode with HMAC authentication).
 
-- **Modern Tech Stack:**  
-    Utilizes FastAPI for high-performance asynchronous API endpoints, PostgreSQL for reliable data storage, and Argon2 for secure password hashing.
+- **Key Derivation**: Master passwords are processed through PBKDF2HMAC with unique, per-entry salts to generate encryption keys.
 
-- **Dockerized Environment:**  
-    The entire backend and database are containerized, ensuring a consistent and easy-to-manage setup on any OS that supports Docker.
+- **Asynchronous API**: Built with FastAPI for high-performance, non-blocking database operations.
+
+- **JWT Authentication**: Implements stateless JSON Web Tokens for secure user sessions.
 
 ---
 
@@ -105,12 +97,10 @@ From this page, you can:
 
 ---
 
-## Encryption Model
+## Encryption Model Detail
 
-The core zero-knowledge encryption model from v1.0.0 remains.
-
-- The stored passwords and service usernames are encrypted utilizing symmetric-key encryption (**Fernet**) based on your chosen master password.
-- To make the master password suitable for encryption, it is first run through a key-derivation function (**PBKDF2HMAC**) with a unique, randomly generated salt for each password entry.
-- This means that even if an attacker gained access to the database, they could not decrypt your data without your master password. The server never knows your master password; it is only sent temporarily over a secure connection to perform on-the-fly decryption for a single request.
+- **Database**: All sensitive fields (encrypted_username, encrypted_password) are stored as Base64 encoded blobs.
+- **Salt**:  A unique salt is generated for every entry and appended to the ciphertext. This ensures that even identical passwords result in completely different stored strings, preventing rainbow-table attacks.
+- **Master Password**: The server does not store your master password. It is used only in-memory during a request to derive the transient encryption key required to unlock your stash.
 
 ---
