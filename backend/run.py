@@ -43,7 +43,9 @@ app = FastAPI(
 )
 
 origins = [
-    "http://localhost:3000",
+    "http://localhost:1420",
+    "tauri://localhost",
+    "http://tauri.localhost"
 ]
 
 app.add_middleware(
