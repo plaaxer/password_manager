@@ -115,6 +115,16 @@ def get_decrypted(encrypted_username: str, encrypted_password: str, master_key: 
 
     return decrypted_username_bytes.decode(), decrypted_password_bytes.decode()
 
+def get_single_encrypted(data: str, master_key: str) -> str:
+    """
+    Encrypts a single string value with a fresh salt and returns it as a base64 encoded string.
+    """
+    salt = os.urandom(aux.get_salt_length())
+    fernet = generate_fernet(master_key, salt)
+    encrypted = _encrypt_data(data.encode(), fernet)
+    encoded_salt = base64.b64encode(salt)
+    return base64.b64encode(encrypted + encoded_salt).decode()
+
 def get_single_decrypted(encrypted_data: str, master_key: str) -> str:
     """
     Extracts salt from encrypted data, regenerates the Fernet key,

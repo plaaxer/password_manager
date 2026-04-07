@@ -77,11 +77,10 @@ async def save_user(connection: asyncpg.Connection, db_user: 'models.UserInDB'):
 @with_connection
 async def get_encrypted_password(connection: asyncpg.Connection, username: str, service_name: str) -> Optional['models.EncryptedPasswordData']:
     """
-    Retrieves the encrypted username and password for a given service.
-    This replaces your old retrieve_password method.
+    Retrieves the encrypted username, password, and notes for a given service.
     """
     query = """
-        SELECT p.encrypted_username, p.encrypted_password
+        SELECT p.encrypted_username, p.encrypted_password, p.encrypted_notes
         FROM passwords p
         JOIN users u ON p.user_id = u.id
         WHERE u.username = $1 AND p.service_name = $2
@@ -91,39 +90,43 @@ async def get_encrypted_password(connection: asyncpg.Connection, username: str, 
         return models.EncryptedPasswordData(
             service_name=service_name,
             encrypted_username=record['encrypted_username'],
-            encrypted_password=record['encrypted_password']
+            encrypted_password=record['encrypted_password'],
+            encrypted_notes=record['encrypted_notes']
         )
     return None
 
 @with_connection
 async def store_encrypted_password(
     connection: asyncpg.Connection,
-    username: str, 
-    service_name: str, 
-    encrypted_username: str, 
-    encrypted_password: str
+    username: str,
+    service_name: str,
+    encrypted_username: Optional[str],
+    encrypted_password: str,
+    encrypted_notes: Optional[str] = None
 ):
     """
     Saves or updates an encrypted password for a given service (upsert).
     """
     query = """
-        INSERT INTO passwords (user_id, service_name, encrypted_username, encrypted_password)
+        INSERT INTO passwords (user_id, service_name, encrypted_username, encrypted_password, encrypted_notes)
         VALUES (
             (SELECT id FROM users WHERE username = $1),
-            $2, $3, $4
+            $2, $3, $4, $5
         )
-        ON CONFLICT (user_id, service_name) 
+        ON CONFLICT (user_id, service_name)
         DO UPDATE SET
             encrypted_username = EXCLUDED.encrypted_username,
             encrypted_password = EXCLUDED.encrypted_password,
+            encrypted_notes = EXCLUDED.encrypted_notes,
             updated_at = CURRENT_TIMESTAMP;
     """
     await connection.execute(
-        query, 
-        username, 
-        service_name, 
-        encrypted_username, 
-        encrypted_password
+        query,
+        username,
+        service_name,
+        encrypted_username,
+        encrypted_password,
+        encrypted_notes
     )
 
 @with_connection

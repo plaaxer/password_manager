@@ -62,9 +62,9 @@ class UserService:
         logger.debug(f"Retrieving encrypted data for user '{username}' and service '{service_name}'.")
         
         try:
-            decrypted_username, decrypted_password = crypto.get_decrypted(encrypted_username=encrypted_data.encrypted_username,
-                                                                      encrypted_password=encrypted_data.encrypted_password,
-                                                                      master_key=master_password)
+            decrypted_password = crypto.get_single_decrypted(encrypted_data.encrypted_password, master_password)
+            decrypted_username = crypto.get_single_decrypted(encrypted_data.encrypted_username, master_password) if encrypted_data.encrypted_username else None
+            decrypted_notes = crypto.get_single_decrypted(encrypted_data.encrypted_notes, master_password) if encrypted_data.encrypted_notes else None
         except CryptoError as e:
             logger.error(f"Decryption error for user '{username}' and service '{service_name}': {e}")
             raise HTTPException(
@@ -75,27 +75,27 @@ class UserService:
         return models.PasswordData(
             service_name=service_name,
             username=decrypted_username,
-            password=decrypted_password
+            password=decrypted_password,
+            notes=decrypted_notes
         )
     
     @staticmethod
-    async def store_and_encrypt_password(username: str, service_name: str, password_create: 'models.PasswordCreate'):
+    async def store_and_encrypt_password(username: str, service_name: str, password_create: 'models.PasswordCreate', master_password: str):
         """
         Encrypts and stores the password for a given service.
         """
-        encrypted_data = crypto.get_encrypted(
-            username=password_create.username,
-            password=password_create.password,
-            master_key=password_create.master_password
-        )
-        
+        encrypted_password = crypto.get_single_encrypted(password_create.password, master_password)
+        encrypted_username = crypto.get_single_encrypted(password_create.username, master_password) if password_create.username else None
+        encrypted_notes = crypto.get_single_encrypted(password_create.notes, master_password) if password_create.notes else None
+
         logger.debug(f"Storing encrypted data for user '{username}' and service '{service_name}'.")
 
         await database.store_encrypted_password(
             username=username,
             service_name=service_name,
-            encrypted_username=encrypted_data[0],
-            encrypted_password=encrypted_data[1]
+            encrypted_username=encrypted_username,
+            encrypted_password=encrypted_password,
+            encrypted_notes=encrypted_notes
         )
 
     @staticmethod
@@ -104,22 +104,22 @@ class UserService:
         Lists all stored passwords for the user without revealing sensitive data.
         """
         records = await database.list_passwords(username)
-        metadata_list = [
-            models.PasswordMetadata(
+        metadata_list = []
+        for record in records:
+            logger.debug(f"Found stored password for service '{record['service_name']}' for user '{username}'.")
+            decrypted_username = None
+            if record['encrypted_username']:
+                try:
+                    decrypted_username = crypto.get_single_decrypted(record['encrypted_username'], master_password)
+                except CryptoError as e:
+                    logger.error(f"Decryption error for user '{username}' and service '{record['service_name']}': {e}")
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Decryption error"
+                    )
+            metadata_list.append(models.PasswordMetadata(
                 service_name=record['service_name'],
-                username=record['encrypted_username'],
+                username=decrypted_username or "",
                 updated_at=record['updated_at']
-            ) for record in records
-        ]
-        for metadata in metadata_list:
-            try:
-                logger.debug(f"Found stored password for service '{metadata.service_name}' for user '{username}'.")
-                metadata.username = crypto.get_single_decrypted(metadata.username, master_password)
-            except CryptoError as e:
-                logger.error(f"Decryption error for user '{username}' and service '{metadata.service_name}': {e}")
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Decryption error"
-                )
-            
+            ))
         return metadata_list

@@ -71,26 +71,28 @@ class PasswordData(BaseModel):
     This is used in the response of the /passwords/{service_name} endpoint.
     """
     service_name: str = Field(..., description="The name of the service for which the password is stored.")
-    username: str = Field(..., description="The decrypted username for the service.")
+    username: Optional[str] = Field(None, description="The decrypted username for the service.")
     password: str = Field(..., description="The decrypted password for the service.")
+    notes: Optional[str] = Field(None, description="Optional notes for the service.")
 
 class PasswordCreate(BaseModel):
     """
     Model for creating a new password entry.
-    This is used when storing a new password for a service.
+    Master password is provided via the X-Master-Password header, not this body.
     """
     service_name: str = Field(..., description="The name of the service for which the password is being stored.")
-    username: str = Field(..., description="The username for the service.")
+    username: Optional[str] = Field(None, description="The username for the service.")
     password: str = Field(..., description="The password for the service. This will be encrypted before storage.")
-    master_password: str = Field(..., description="The user's master password, required for encryption.")
+    notes: Optional[str] = Field(None, description="Optional notes for the service.")
 
 class EncryptedPasswordData(BaseModel):
     """
     Model for representing a password that is yet encrypted.
     """
     service_name: str = Field(..., description="The name of the service for which the password is stored.")
-    encrypted_username: str = Field(..., description="The hashed username for the service.")
-    encrypted_password: str = Field(..., description="The hashed password for the service.")
+    encrypted_username: Optional[str] = Field(None, description="The encrypted username for the service.")
+    encrypted_password: str = Field(..., description="The encrypted password for the service.")
+    encrypted_notes: Optional[str] = Field(None, description="The encrypted notes for the service.")
 
 class PasswordRequest(BaseModel):
     """

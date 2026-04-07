@@ -52,13 +52,14 @@ async def get_password(
 @router.post("/passwords")
 async def store_password(
     password_data: models.PasswordCreate,
+    x_master_password: str = Header(...),
     token: str = Depends(oauth2_scheme)):
 
     """
     A protected endpoint to store an encrypted password.
     """
 
-    await application.store_password(token=token, service_name=password_data.service_name, password_data=password_data)
+    await application.store_password(token=token, service_name=password_data.service_name, password_data=password_data, master_password=x_master_password)
 
     return {"message": f"Password for {password_data.service_name} stored successfully."}
 
@@ -66,13 +67,14 @@ async def store_password(
 async def update_password(
     service_name: str,
     password_data: models.PasswordCreate,
+    x_master_password: str = Header(...),
     token: str = Depends(oauth2_scheme)):
 
     """
     A protected endpoint to update an existing encrypted password.
     """
 
-    await application.store_password(token=token, service_name=service_name, password_data=password_data)
+    await application.store_password(token=token, service_name=service_name, password_data=password_data, master_password=x_master_password)
 
     return {"message": f"Password for {service_name} updated successfully."}
 
