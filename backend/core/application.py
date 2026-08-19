@@ -92,7 +92,7 @@ async def store_password(token: str, service_name: str, password_data: 'models.P
 
     await UserService.store_and_encrypt_password(username, service_name, password_data, master_password)
 
-async def delete_password(token: str, service_name: str):
+async def delete_password(token: str, service_name: str, master_password: str):
     """
     Deletes the password entry for a given service.
     """
@@ -103,6 +103,7 @@ async def delete_password(token: str, service_name: str):
             detail="Invalid token"
         )
     
+    await authenticate_user(username, master_password)
     await database.delete_encrypted_password(username, service_name)
 
 async def list_passwords(password_request: models.PasswordRequest, token: str) -> list['models.PasswordMetadata']:

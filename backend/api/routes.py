@@ -81,13 +81,18 @@ async def update_password(
 @router.delete("/passwords/{service_name}")
 async def delete_password(
     service_name: str,
+    x_master_password: str = Header(...),
     token: str = Depends(oauth2_scheme)):
 
     """
     A protected endpoint to delete an existing password.
     """
 
-    await application.delete_password(token=token, service_name=service_name)
+    await application.delete_password(
+        token=token,
+        service_name=service_name,
+        master_password=x_master_password
+    )
 
     return {"message": f"Password for {service_name} deleted successfully."}
 

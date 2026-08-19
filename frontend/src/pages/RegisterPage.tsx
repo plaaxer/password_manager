@@ -1,94 +1,63 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { register } from "../lib/api";
 
-interface Props {
-  onBack: () => void;
-  onRegistered: () => void;
+interface Props { onBack: () => void; onRegistered: (username: string, password: string) => Promise<void>; }
+
+function getPasswordStrength(password: string) {
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+  if (/\d/.test(password) && /[^A-Za-z0-9]/.test(password)) score++;
+  return [{ label: "Too short", score: 0 }, { label: "Weak", score: 1 }, { label: "Fair", score: 2 }, { label: "Good", score: 3 }, { label: "Strong", score: 4 }][score];
 }
 
 export default function RegisterPage({ onBack, onRegistered }: Props) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const strength = useMemo(() => getPasswordStrength(password), [password]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError(null);
-
-    if (password !== confirm) {
-      setError("Passwords do not match");
-      return;
-    }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
-
+    if (username.length < 3 || username.length > 50) { setError("Account name must be between 3 and 50 characters"); return; }
+    if (password !== confirm) { setError("Passwords do not match"); return; }
+    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
     setLoading(true);
     try {
       await register(username, password);
-      onRegistered();
+      setSuccess("Account created. Signing you in...");
+      try { await onRegistered(username, password); }
+      catch (err: unknown) { setError(err instanceof Error ? `Account created, but sign-in failed: ${err.message}` : "Account created, but sign-in failed"); }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Registration failed");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   return (
-    <div className="flex items-center justify-center h-screen bg-zinc-950">
-      <div className="w-80 bg-zinc-900 rounded-2xl p-8 shadow-xl border border-zinc-800">
-        <h1 className="text-white text-2xl font-semibold mb-1">Argus</h1>
-        <p className="text-zinc-400 text-sm mb-6">Create an account</p>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <input
-            className="bg-zinc-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-zinc-500 placeholder-zinc-500"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-          />
-          <input
-            type="password"
-            className="bg-zinc-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-zinc-500 placeholder-zinc-500"
-            placeholder="Master password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
-          />
-          <input
-            type="password"
-            className="bg-zinc-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-zinc-500 placeholder-zinc-500"
-            placeholder="Confirm password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            autoComplete="new-password"
-          />
-
-          {error && <p className="text-red-400 text-xs">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-white text-zinc-900 rounded-lg py-2.5 text-sm font-medium hover:bg-zinc-100 transition-colors disabled:opacity-50"
-          >
-            {loading ? "Creating account..." : "Create account"}
-          </button>
+    <div className="desktop"><div className="app-window">
+      <header className="app-header"><h1>Argus</h1></header>
+      <main className="auth-workspace"><section className="auth-panel">
+        <div className="panel-heading">Create account</div>
+        <form onSubmit={handleSubmit}>
+          <div className="auth-form">
+            <p className="panel-description">Choose an account name and master password.</p>
+            <div className="form-row"><label className="form-label" htmlFor="register-username">Account name</label><input id="register-username" required minLength={3} maxLength={50} className="field" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" autoFocus /></div>
+            <div className="form-hint">3–50 characters</div>
+            <div className="form-row"><label className="form-label" htmlFor="register-password">Master password</label><div className="field-with-action"><input id="register-password" required minLength={8} type={showPassword ? "text" : "password"} className="field" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" /><button type="button" className="field-action" onClick={() => setShowPassword((visible) => !visible)}>{showPassword ? "Hide" : "Show"}</button></div></div>
+            <div className="strength-row"><span>Password strength: {strength.label}</span><span className="strength-meter" aria-hidden="true">{[1,2,3,4].map((value) => <i key={value} className={value <= strength.score ? "active" : ""} />)}</span></div>
+            <div className="form-row"><label className="form-label" htmlFor="register-confirm">Confirm password</label><input id="register-confirm" required minLength={8} type={showPassword ? "text" : "password"} className="field" value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" /></div>
+            {success && <p className="form-success" role="status">{success}</p>}
+            {error && <p className="form-message" role="alert">{error}</p>}
+          </div>
+          <div className="auth-actions"><button type="button" onClick={onBack} className="secondary-action">Cancel</button><button type="submit" disabled={loading} className="primary-action">{loading ? (success ? "Signing in..." : "Creating...") : "Create Account"}</button></div>
         </form>
-
-        <p className="text-zinc-500 text-xs mt-5 text-center">
-          Already have an account?{" "}
-          <button
-            onClick={onBack}
-            className="text-zinc-300 hover:text-white transition-colors"
-          >
-            Sign in
-          </button>
-        </p>
-      </div>
-    </div>
+      </section></main>
+    </div></div>
   );
 }
