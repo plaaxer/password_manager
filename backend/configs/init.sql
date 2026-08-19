@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS passwords (
     encrypted_username TEXT,
     encrypted_password TEXT NOT NULL,
     encrypted_notes TEXT,
+    group_name TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (user_id, service_name)

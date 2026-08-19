@@ -13,11 +13,14 @@ interface Props { masterPassword: string; onLogout: (reason?: string) => void; }
 type EditorState = { mode: "add" | "edit"; originalService?: string; data: PasswordData };
 
 const LOCK_TIMEOUT_MS = 5 * 60 * 1000;
-const emptyPassword: PasswordData = { service_name: "", username: "", password: "", notes: "" };
+const ALL_GROUPS = "__all__";
+const UNGROUPED = "__ungrouped__";
+const emptyPassword: PasswordData = { service_name: "", username: "", password: "", notes: "", group_name: "" };
 
 export default function VaultPage({ masterPassword, onLogout }: Props) {
   const [entries, setEntries] = useState<PasswordMeta[]>([]);
   const [search, setSearch] = useState("");
+  const [selectedGroup, setSelectedGroup] = useState(ALL_GROUPS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editor, setEditor] = useState<EditorState | null>(null);
@@ -56,9 +59,13 @@ export default function VaultPage({ masterPassword, onLogout }: Props) {
     };
   }, [onLogout]);
 
+  const groups = Array.from(new Set(entries.map((entry) => entry.group_name?.trim()).filter((group): group is string => Boolean(group)))).sort((a, b) => a.localeCompare(b));
+  const ungroupedCount = entries.filter((entry) => !entry.group_name).length;
   const filtered = entries.filter((entry) => {
     const query = search.toLowerCase();
-    return entry.service_name.toLowerCase().includes(query) || entry.username.toLowerCase().includes(query);
+    const matchesGroup = selectedGroup === ALL_GROUPS || (selectedGroup === UNGROUPED ? !entry.group_name : entry.group_name === selectedGroup);
+    const matchesSearch = entry.service_name.toLowerCase().includes(query) || entry.username.toLowerCase().includes(query);
+    return matchesGroup && matchesSearch;
   });
 
   function closeDetails() {
@@ -82,7 +89,8 @@ export default function VaultPage({ masterPassword, onLogout }: Props) {
   }
 
   function openEditor(mode: "add" | "edit") {
-    const data = mode === "edit" && selected ? { ...selected } : { ...emptyPassword };
+    const defaultGroup = selectedGroup !== ALL_GROUPS && selectedGroup !== UNGROUPED ? selectedGroup : "";
+    const data = mode === "edit" && selected ? { ...selected } : { ...emptyPassword, group_name: defaultGroup };
     setEditor({ mode, originalService: mode === "edit" ? selected?.service_name : undefined, data });
     setFormError(null);
     setShowEditorPassword(false);
@@ -94,10 +102,12 @@ export default function VaultPage({ masterPassword, onLogout }: Props) {
     setSaving(true);
     setFormError(null);
     try {
-      if (editor.mode === "edit" && editor.originalService) await updatePassword(editor.originalService, editor.data, masterPassword);
-      else await storePassword(editor.data, masterPassword);
+      const normalizedData = { ...editor.data, group_name: editor.data.group_name?.trim() || undefined };
+      if (editor.mode === "edit" && editor.originalService) await updatePassword(editor.originalService, normalizedData, masterPassword);
+      else await storePassword(normalizedData, masterPassword);
       await refreshEntries();
-      if (editor.mode === "edit") setSelected({ ...editor.data });
+      if (editor.mode === "edit") setSelected(normalizedData);
+      if (selectedGroup !== ALL_GROUPS && selectedGroup !== UNGROUPED && normalizedData.group_name !== selectedGroup) setSelectedGroup(ALL_GROUPS);
       setEditor(null);
     } catch (err: unknown) {
       setFormError(err instanceof Error ? err.message : "Failed to save record");
@@ -134,11 +144,16 @@ export default function VaultPage({ masterPassword, onLogout }: Props) {
         <div className="vault-layout">
           <aside className="vault-sidebar">
             <div className="sidebar-heading">Vault</div>
-            <nav className="sidebar-tree"><div className="tree-root">▾ Password Vault</div><div className="tree-item selected">All Records</div></nav>
+            <nav className="sidebar-tree" aria-label="Password groups">
+              <div className="tree-root">Password Vault</div>
+              <button type="button" className={`tree-item ${selectedGroup === ALL_GROUPS ? "selected" : ""}`} onClick={() => setSelectedGroup(ALL_GROUPS)}><span>All Records</span><span>{entries.length}</span></button>
+              {groups.map((group) => <button type="button" key={group} className={`tree-item ${selectedGroup === group ? "selected" : ""}`} onClick={() => setSelectedGroup(group)}><span>{group}</span><span>{entries.filter((entry) => entry.group_name === group).length}</span></button>)}
+              {ungroupedCount > 0 && <button type="button" className={`tree-item ${selectedGroup === UNGROUPED ? "selected" : ""}`} onClick={() => setSelectedGroup(UNGROUPED)}><span>Ungrouped</span><span>{ungroupedCount}</span></button>}
+            </nav>
             <div className="sidebar-session"><div className="lock-note">Locks after 5 minutes idle</div><button onClick={() => onLogout()} className="secondary-action">Sign Out</button></div>
           </aside>
           <main className="vault-main">
-            <h2 className="content-heading">Password Records</h2>
+            <h2 className="content-heading">{selectedGroup === ALL_GROUPS ? "Password Records" : selectedGroup === UNGROUPED ? "Ungrouped" : selectedGroup}</h2>
             <p className="content-subtitle">Stored accounts and passwords.</p>
             <div className="toolbar"><input className="search-field" aria-label="Search password records" placeholder="Search by service or username..." value={search} onChange={(event) => setSearch(event.target.value)} /><button onClick={() => openEditor("add")} className="toolbar-button">New Record...</button></div>
             <section className="entry-frame" aria-label="Password records">
@@ -161,6 +176,7 @@ export default function VaultPage({ masterPassword, onLogout }: Props) {
           {selected && <>
             <dl className="detail-list">
               <div><dt>Service</dt><dd>{selected.service_name}</dd></div>
+              <div><dt>Group</dt><dd>{selected.group_name || "Ungrouped"}</dd></div>
               <div><dt>Username</dt><dd><span className="detail-value">{selected.username || "—"}</span>{selected.username && <button type="button" className="inline-action" onClick={() => copyValue(selected.username ?? "", "username")}>{copiedField === "username" ? "Copied" : "Copy"}</button>}</dd></div>
               <div><dt>Password</dt><dd><span className="detail-value password-value">{showDetailPassword ? selected.password : "••••••••"}</span><button type="button" className="inline-action" onClick={() => setShowDetailPassword((visible) => !visible)}>{showDetailPassword ? "Hide" : "Reveal"}</button><button type="button" className="inline-action" onClick={() => copyValue(selected.password, "password")}>{copiedField === "password" ? "Copied" : "Copy"}</button></dd></div>
               <div><dt>Notes</dt><dd className="notes-value">{selected.notes || "—"}</dd></div>
@@ -180,6 +196,7 @@ export default function VaultPage({ masterPassword, onLogout }: Props) {
           {formError && <p className="form-message" role="alert">{formError}</p>}
           <div className="modal-row"><label className="form-label" htmlFor="service-name">Service name <span className="required-mark">*</span></label><input id="service-name" required autoFocus className="modal-field" disabled={editor.mode === "edit"} value={editor.data.service_name} onChange={(event) => setEditor({ ...editor, data: { ...editor.data, service_name: event.target.value } })} /></div>
           <div className="modal-row"><label className="form-label" htmlFor="service-username">Username</label><input id="service-username" className="modal-field" value={editor.data.username ?? ""} onChange={(event) => setEditor({ ...editor, data: { ...editor.data, username: event.target.value } })} /></div>
+          <div className="modal-row"><label className="form-label" htmlFor="service-group">Group</label><input id="service-group" maxLength={50} list="group-options" className="modal-field" placeholder="Optional" value={editor.data.group_name ?? ""} onChange={(event) => setEditor({ ...editor, data: { ...editor.data, group_name: event.target.value } })} /><datalist id="group-options">{groups.map((group) => <option key={group} value={group} />)}</datalist></div>
           <div className="modal-row"><label className="form-label" htmlFor="service-password">Password <span className="required-mark">*</span></label><div className="field-with-action"><input id="service-password" required type={showEditorPassword ? "text" : "password"} className="modal-field" value={editor.data.password} onChange={(event) => setEditor({ ...editor, data: { ...editor.data, password: event.target.value } })} /><button type="button" className="field-action" onClick={() => setShowEditorPassword((visible) => !visible)}>{showEditorPassword ? "Hide" : "Show"}</button></div></div>
           <div className="modal-row"><label className="form-label" htmlFor="service-notes">Notes</label><textarea id="service-notes" className="modal-field" value={editor.data.notes ?? ""} onChange={(event) => setEditor({ ...editor, data: { ...editor.data, notes: event.target.value } })} /></div>
         </div>

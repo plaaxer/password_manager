@@ -45,8 +45,8 @@ export async function login(username: string, password: string): Promise<string>
 
 export function logout() { localStorage.removeItem("token"); }
 
-export interface PasswordMeta { service_name: string; username: string; updated_at: string; }
-export interface PasswordData { service_name: string; password: string; username?: string; notes?: string; }
+export interface PasswordMeta { service_name: string; username: string; updated_at: string; group_name?: string; }
+export interface PasswordData { service_name: string; password: string; username?: string; notes?: string; group_name?: string; }
 
 export async function listPasswords(masterPassword: string): Promise<PasswordMeta[]> {
   const response = await fetch(`${BASE_URL}/passwords`, { headers: authHeaders(masterPassword) });

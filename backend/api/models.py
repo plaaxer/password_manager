@@ -74,6 +74,7 @@ class PasswordData(BaseModel):
     username: Optional[str] = Field(None, description="The decrypted username for the service.")
     password: str = Field(..., description="The decrypted password for the service.")
     notes: Optional[str] = Field(None, description="Optional notes for the service.")
+    group_name: Optional[str] = Field(None, max_length=50, description="Optional group used to organize the entry.")
 
 class PasswordCreate(BaseModel):
     """
@@ -84,6 +85,7 @@ class PasswordCreate(BaseModel):
     username: Optional[str] = Field(None, description="The username for the service.")
     password: str = Field(..., description="The password for the service. This will be encrypted before storage.")
     notes: Optional[str] = Field(None, description="Optional notes for the service.")
+    group_name: Optional[str] = Field(None, max_length=50, description="Optional group used to organize the entry.")
 
 class EncryptedPasswordData(BaseModel):
     """
@@ -93,6 +95,7 @@ class EncryptedPasswordData(BaseModel):
     encrypted_username: Optional[str] = Field(None, description="The encrypted username for the service.")
     encrypted_password: str = Field(..., description="The encrypted password for the service.")
     encrypted_notes: Optional[str] = Field(None, description="The encrypted notes for the service.")
+    group_name: Optional[str] = Field(None, description="Optional group used to organize the entry.")
 
 class PasswordRequest(BaseModel):
     """
@@ -109,3 +112,4 @@ class PasswordMetadata(BaseModel):
     service_name: str = Field(..., description="The name of the service for which the password is stored.")
     username: str = Field(..., description="The encrypted username for the service.")
     updated_at: datetime = Field(..., description="The timestamp when the password was last updated.")
+    group_name: Optional[str] = Field(None, description="Optional group used to organize the entry.")

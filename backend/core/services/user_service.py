@@ -76,7 +76,8 @@ class UserService:
             service_name=service_name,
             username=decrypted_username,
             password=decrypted_password,
-            notes=decrypted_notes
+            notes=decrypted_notes,
+            group_name=encrypted_data.group_name
         )
     
     @staticmethod
@@ -95,7 +96,8 @@ class UserService:
             service_name=service_name,
             encrypted_username=encrypted_username,
             encrypted_password=encrypted_password,
-            encrypted_notes=encrypted_notes
+            encrypted_notes=encrypted_notes,
+            group_name=password_create.group_name.strip() if password_create.group_name else None
         )
 
     @staticmethod
@@ -120,6 +122,7 @@ class UserService:
             metadata_list.append(models.PasswordMetadata(
                 service_name=record['service_name'],
                 username=decrypted_username or "",
-                updated_at=record['updated_at']
+                updated_at=record['updated_at'],
+                group_name=record['group_name']
             ))
         return metadata_list

@@ -46,6 +46,11 @@ async def connect_to_db():
         database=db_name
     )
 
+    async with pool.acquire() as connection:
+        await connection.execute(
+            "ALTER TABLE passwords ADD COLUMN IF NOT EXISTS group_name TEXT"
+        )
+
 async def close_db_connection():
     """Closes the database connection pool. Called on application shutdown."""
     global pool
@@ -80,7 +85,7 @@ async def get_encrypted_password(connection: asyncpg.Connection, username: str, 
     Retrieves the encrypted username, password, and notes for a given service.
     """
     query = """
-        SELECT p.encrypted_username, p.encrypted_password, p.encrypted_notes
+        SELECT p.encrypted_username, p.encrypted_password, p.encrypted_notes, p.group_name
         FROM passwords p
         JOIN users u ON p.user_id = u.id
         WHERE u.username = $1 AND p.service_name = $2
@@ -91,7 +96,8 @@ async def get_encrypted_password(connection: asyncpg.Connection, username: str, 
             service_name=service_name,
             encrypted_username=record['encrypted_username'],
             encrypted_password=record['encrypted_password'],
-            encrypted_notes=record['encrypted_notes']
+            encrypted_notes=record['encrypted_notes'],
+            group_name=record['group_name']
         )
     return None
 
@@ -102,22 +108,24 @@ async def store_encrypted_password(
     service_name: str,
     encrypted_username: Optional[str],
     encrypted_password: str,
-    encrypted_notes: Optional[str] = None
+    encrypted_notes: Optional[str] = None,
+    group_name: Optional[str] = None
 ):
     """
     Saves or updates an encrypted password for a given service (upsert).
     """
     query = """
-        INSERT INTO passwords (user_id, service_name, encrypted_username, encrypted_password, encrypted_notes)
+        INSERT INTO passwords (user_id, service_name, encrypted_username, encrypted_password, encrypted_notes, group_name)
         VALUES (
             (SELECT id FROM users WHERE username = $1),
-            $2, $3, $4, $5
+            $2, $3, $4, $5, $6
         )
         ON CONFLICT (user_id, service_name)
         DO UPDATE SET
             encrypted_username = EXCLUDED.encrypted_username,
             encrypted_password = EXCLUDED.encrypted_password,
             encrypted_notes = EXCLUDED.encrypted_notes,
+            group_name = EXCLUDED.group_name,
             updated_at = CURRENT_TIMESTAMP;
     """
     await connection.execute(
@@ -126,7 +134,8 @@ async def store_encrypted_password(
         service_name,
         encrypted_username,
         encrypted_password,
-        encrypted_notes
+        encrypted_notes,
+        group_name
     )
 
 @with_connection
@@ -147,10 +156,9 @@ async def list_passwords(connection: asyncpg.Connection, username: str) -> list[
     Retrieves metadata for all passwords belonging to a user.
     """
     query = """
-        SELECT p.service_name, p.encrypted_username, p.updated_at
+        SELECT p.service_name, p.encrypted_username, p.updated_at, p.group_name
         FROM passwords p
         JOIN users u ON p.user_id = u.id
         WHERE u.username = $1
     """
     return await connection.fetch(query, username)
-
